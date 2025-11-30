@@ -39,7 +39,7 @@ h1 {
 }
 
 p {
-  color: gray;
+  color: rgb(181, 221, 159);
   margin-bottom: 20px;
 }
 
@@ -53,13 +53,14 @@ p {
   padding: 10px 20px;
   border: none;
   border-radius: 20px;
-  background-color: #f0f0f0;
+  background-color: #f8faf8;
+  color: rgba(158, 239, 158, 0.841);
   cursor: pointer;
 }
 
 .role-btn.active {
   background-color: #4caf50;
-  color: white;
+  color: rgb(210, 195, 195);
 }
 
 label {
@@ -75,7 +76,7 @@ label {
 }
 
 .input-group input {
-  width: 100%;
+  width: 90%;
   padding: 10px 10px 10px 30px;
   border: 1px solid #ddd;
   border-radius: 5px;
@@ -89,7 +90,7 @@ label {
   color: gray;
 }
 
-.eye-icon {
+.eye-password {
   position: absolute;
   right: 10px;
   top: 50%;
