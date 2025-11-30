@@ -1,104 +1,108 @@
-import React,{useState} from "react";
+import React, { useState } from "react";
 import './App.css';
+import './login.css';
 
-const Login=()=>{
-    const [role,setRole]=useState("citizen");
-    const [email,setEmail]=useState("");
-    const [password,setPassword]=useState("");
-    const [showPassword,setShowPassword]=useState(false);
-    const [error,setError]=useState("");
+const Login = () => {
+  const [role, setRole] = useState("citizen");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
-    const handleSubmit= async (e) =>{
-        e.preventDefault();
-        setError("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
 
-        if(!email||!password){
-            setError("Please fill in all fields");
-            return;
-        }
-        
-        try{
-          const response = await fetch('http://localhost:5000/login', {
-            method: 'post',
-            headers:{'Content-Type':'application/json' },
-            body:JSON.stringify({email,password,role}
-          ) 
-        });
-        
-        const data = await response.json();
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
 
-        if(response.ok){
-          console.log("Login successful:", data);
-          // Handle successful login (e.g., redirect, store token)
-        }else{
-          setError(data.message ||"login failed");
-        }
-      } catch(error){
-        console.error("server error");
+    try {
+      const response = await fetch("http://localhost:5000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, role }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Login successful:", data);
+        // redirect or save token here
+      } else {
+        setError(data.message || "Login failed");
       }
-      };
-        
+    } catch (error) {
+      console.error("Server error:", error);
+      setError("Server error. Try again later.");
+    }
+  };
 
- 
-    return(
-      <div className="container">
-        <div className="login-box">
-          <img 
-          src=""
+  return (
+    <div className="container">
+      <div className="login-box">
+        <img
+          src={null}     // Prevents empty src warning
           alt=""
-          className=""
-          />
-          <h1>Welcome Back</h1>
-          <p>log in to manage your smart garbage system</p>
+          className="logo"
+        />
 
-          <div className="role-selection">
+        <h1>Welcome Back</h1>
+        <p>Log in to manage your smart garbage system</p>
+
+        {/* Role Buttons */}
+        <div className="role-selection">
           <button
-         className={`role-btn ${role === 'Admin' ? 'active' : ''}`}
-          onClick={()=>setRole('admin')}
+            className={`role-btn ${role === "admin" ? "active" : ""}`}
+            onClick={() => setRole("admin")}
           >
-            admin
-            </button>
+            Admin
+          </button>
+
           <button
-            className={`role-btn ${role === 'citizen' ? 'active' : ''}  `}
-            onClick={()=>setRole('citizen')}
-            >
+            className={`role-btn ${role === "citizen" ? "active" : ""}`}
+            onClick={() => setRole("citizen")}
+          >
             Citizen
-            </button>
+          </button>
+
           <button
-          className={`role-btn ${role === 'Staff'? 'active':''}`}
-          onClick={()=> setRole('Staff')}
+            className={`role-btn ${role === "staff" ? "active" : ""}`}
+            onClick={() => setRole("staff")}
           >
             Staff
           </button>
-            </div>
+        </div>
 
-          <form onSubmit={handleSubmit}>
-            <label> Email Address</label>
-            <div className="input-group">
-              <span className="icon"> </span>
-              <input
+        {/* Login Form */}
+        <form onSubmit={handleSubmit}>
+          <label>Email Address</label>
+          <div className="input-group">
+            <input
               type="email"
               placeholder="Enter your email"
               value={email}
-              onChange={(e)=> setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              />
-              </div>
-              <label> Password</label>
-              <div className="input-group">
-                <span className="icon"> </span>
-                <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e)=> setPassword (e.target.value)}
-               required
-              />
-              <span
+            />
+          </div>
+
+          <label>Password</label>
+          <div className="input-group">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+
+            <span
               className="eye-password"
-              onClick ={()=> setShowPassword(!showPassword)}
-              >
-              {showPassword ? '' : ''}
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? "👁️" : "👁️‍🗨️"}
             </span>
           </div>
 
@@ -119,7 +123,6 @@ const Login=()=>{
       </div>
     </div>
   );
-}
-
+};
 
 export default Login;

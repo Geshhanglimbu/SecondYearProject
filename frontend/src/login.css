@@ -1,0 +1,123 @@
+/* src/App.css - Styles for the frontend */
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-box {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 100%;
+}
+
+.logo {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+p {
+  color: rgb(181, 221, 159);
+  margin-bottom: 20px;
+}
+
+.role-selection {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.role-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  background-color: #f8faf8;
+  color: rgba(158, 239, 158, 0.841);
+  cursor: pointer;
+}
+
+.role-btn.active {
+  background-color: #4caf50;
+  color: rgb(210, 195, 195);
+}
+
+label {
+  display: block;
+  text-align: left;
+  margin-bottom: 5px;
+  color: gray;
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.input-group input {
+  width: 90%;
+  padding: 10px 10px 10px 30px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: gray;
+}
+
+.eye-password {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: gray;
+}
+
+.forgot-link {
+  display: block;
+  text-align: right;
+  color: #4caf50;
+  text-decoration: none;
+  margin-bottom: 20px;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.error {
+  color: red;
+  margin-top: 10px;
+}
