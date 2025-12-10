@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import './App.css';
+
 import './login.css';
 
 const Login = () => {
@@ -43,9 +43,8 @@ const Login = () => {
     <div className="container">
       <div className="login-box">
         <img
-          src={null}     // Prevents empty src warning
-          alt=""
-          className="logo"
+        src="/download (23).jpeg" alt="logo image"
+        className="logo"
         />
 
         <h1>Welcome Back</h1>
