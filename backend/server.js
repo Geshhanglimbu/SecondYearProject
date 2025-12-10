@@ -1,3 +1,4 @@
+
 /*
   Backend Server (Node.js + Express)
   - Handles API requests
@@ -80,13 +81,16 @@ app.post("/register", upload.single("image"), async (req, res) => {
 
 
 /* ------------------ LOGIN API ------------------ */
+
 app.post("/login", async (req, res) => {
   const { email, password, role } = req.body;
 
   const sql = "SELECT * FROM users WHERE email = ? AND role = ?";
   db.query(sql, [email, role], async (err, results) => {
     if (err) {
+
       console.log("LOGIN SQL ERROR: ", err);
+
       return res.status(500).json({ message: "Server error" });
     }
 
