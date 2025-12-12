@@ -1,0 +1,126 @@
+/* App.css - Styles for the React app */
+
+/* General */
+.app {
+  background-color: #f8f9fa;
+  font-family: Arial, sans-serif;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #fff;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.logo {
+  color: green;
+  font-weight: bold;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  margin-left: 10px;
+}
+
+/* Sidebar */
+.sidebar {
+  background-color: #fff;
+  padding: 20px;
+  border-right: 1px solid #dee2e6;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.sidebar .active {
+  background-color: #28a745;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+/* Main Content */
+.main-content {
+  padding: 20px;
+}
+
+.request-types .request-card {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.request-types .icon {
+  font-size: 2em;
+  margin-bottom: 10px;
+}
+
+.request-types .selected {
+  border: 2px solid purple;
+}
+
+.illustration img {
+  width: 100%;
+  height: auto;
+}
+
+.quote {
+  text-align: center;
+  font-style: italic;
+  margin: 20px 0;
+}
+
+.submit-btn {
+  width: 100%;
+  background-color: #28a745;
+  border: none;
+}
+
+/* Footer */
+.footer {
+  background-color: #fff;
+  padding: 20px;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.footer-logo {
+  color: green;
+  font-weight: bold;
+}
+
+.quick-links, .connect {
+  flex: 1;
+  margin-left: 20px;
+}
+
+.quick-links ul, .connect ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer p {
+  width: 100%;
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.8em;
+}

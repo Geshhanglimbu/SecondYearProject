@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-
+import { Link } from "react-router-dom";
 import './login.css';
 
 const Login = () => {
@@ -117,7 +117,10 @@ const Login = () => {
         {error && <p className="error">{error}</p>}
 
         <p>
-          Don't have an account? <a href="/signup">Sign Up</a>
+         <p>
+        Don't have an account? <Link to="/register">Sign Up</Link>
+      </p>
+
         </p>
       </div>
     </div>

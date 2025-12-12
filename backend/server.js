@@ -1,4 +1,3 @@
-
 /*
   Backend Server (Node.js + Express)
   - Handles API requests
@@ -108,6 +107,49 @@ app.post("/login", async (req, res) => {
     res.json({ message: "Login successful", user });
   });
 });
+
+/* ------------------ SUBMIT REQUEST API ------------------ */
+// Assuming you have a 'requests' table in your 'gms' database with columns like:
+// id (auto-increment), user_id (int), type (varchar), description (text), pickup_date (date), pickup_time (time), image (varchar), created_at (timestamp)
+// Create it if needed: 
+// CREATE TABLE requests (
+//   id INT AUTO_INCREMENT PRIMARY KEY,
+//   user_id INT,
+//   type VARCHAR(50),
+//   description TEXT,
+//   pickup_date DATE,
+//   pickup_time TIME,
+//   image VARCHAR(255),
+//   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+// );
+// FOREIGN KEY (user_id) REFERENCES users(id);  // Optional, if you want to link to users
+
+app.post("/api/submit-request", upload.single("file"), (req, res) => {
+  const { type, description, pickupDate, pickupTime, userId } = req.body;  // Assuming userId is sent from frontend after login
+
+  if (!userId) {
+    return res.status(400).json({ message: "User ID is required" });
+  }
+
+  const image = req.file ? req.file.filename : null;
+
+  const sql = 
+    "INSERT INTO requests (user_id, type, description, pickup_date, pickup_time, image) VALUES (?, ?, ?, ?, ?, ?)";
+
+  db.query(
+    sql,
+    [userId, type, description, pickupDate, pickupTime, image],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Request submission failed" });
+      }
+
+      res.status(200).json({ message: "Request submitted successfully!" });
+    }
+  );
+});
+
 /* ------------------ TEST ROUTE ------------------ */
 app.get("/test", (req, res) => {
   res.json({ message: "Backend is working!" });
