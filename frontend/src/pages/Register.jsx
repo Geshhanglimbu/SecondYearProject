@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import './register.css';
+import { useNavigate } from "react-router-dom";
 
 function Register() {
+  const navigate = useNavigate(); // ✅ moved to top of component
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -18,37 +20,49 @@ function Register() {
 
   const [image, setImage] = useState(null);
 
-  // PHOTO PREVIEW
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     setImage(file);
     if (file) setImagePreview(URL.createObjectURL(file));
   };
 
-  // SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ✅ Check passwords match before submitting
+    if (form.password !== form.confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
 
     const formData = new FormData();
     Object.keys(form).forEach((key) => formData.append(key, form[key]));
     if (image) formData.append("image", image);
 
-    const res = await fetch("http://localhost:5001/register", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch("http://localhost:5001/register", {
+        method: "POST",
+        body: formData,
+      });
 
-    const data = await res.json();
-    alert(data.message);
+      const data = await res.json();
+      alert(data.message);
+
+      // ✅ navigate INSIDE handleSubmit, after successful registration
+      if (res.ok) {
+        navigate("/login");
+      }
+
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert("Something went wrong. Try again.");
+    }
   };
 
   return (
     <div className="register-page">
-
-      {/* LEFT SIDE */}
       <div className="left-side">
         <img src="/gms.png" className="left-image" alt="Government Banner" />
-
         <h1 className="left-title">Join Us</h1>
         <p className="left-text">
           Become part of a cleaner, safer, and smarter community.
@@ -56,27 +70,19 @@ function Register() {
         </p>
       </div>
 
-      {/* RIGHT SIDE */}
       <div className="right-side">
-
         <h2 className="form-title">Register Here</h2>
 
         <form className="form-container" onSubmit={handleSubmit}>
 
-          {/* Photo Upload */}
           <div className="upload-wrapper">
             <label htmlFor="profileUpload" className="upload-circle">
               {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="preview-img"
-                />
+                <img src={imagePreview} alt="Preview" className="preview-img" />
               ) : (
                 <span className="upload-text-inside">Upload Photo</span>
               )}
             </label>
-
             <input
               type="file"
               id="profileUpload"
@@ -84,11 +90,9 @@ function Register() {
               style={{ display: "none" }}
               onChange={handleImageChange}
             />
-
             <div className="upload-text">Profile Picture</div>
           </div>
 
-          {/* Role */}
           <label>I am a...</label>
           <select
             className="input-select"
@@ -99,7 +103,6 @@ function Register() {
             <option value="staff">Staff</option>
           </select>
 
-          {/* Full Name */}
           <label>Full Name</label>
           <input
             type="text"
@@ -108,7 +111,6 @@ function Register() {
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
 
-          {/* Email */}
           <label>Email Address</label>
           <input
             type="email"
@@ -117,7 +119,6 @@ function Register() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
 
-          {/* Phone */}
           <label>Phone Number</label>
           <input
             type="text"
@@ -126,7 +127,6 @@ function Register() {
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
 
-          {/* Address */}
           <label>Address</label>
           <input
             type="text"
@@ -135,7 +135,6 @@ function Register() {
             onChange={(e) => setForm({ ...form, address: e.target.value })}
           />
 
-          {/* Password */}
           <label>Create Password</label>
           <div className="password-row">
             <input
@@ -153,16 +152,13 @@ function Register() {
             </button>
           </div>
 
-          {/* Confirm Password */}
           <label>Confirm Password</label>
           <div className="password-row">
             <input
               type={showConfirmPassword ? "text" : "password"}
               placeholder="********"
               className="input-field"
-              onChange={(e) =>
-                setForm({ ...form, confirmPassword: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
             />
             <button
               type="button"
@@ -173,7 +169,6 @@ function Register() {
             </button>
           </div>
 
-          {/* Button */}
           <button className="register-btn" type="submit">
             Register
           </button>
@@ -181,6 +176,7 @@ function Register() {
           <p className="login-text">
             Already have an account? <a href="/login">Log in</a>
           </p>
+
         </form>
       </div>
     </div>

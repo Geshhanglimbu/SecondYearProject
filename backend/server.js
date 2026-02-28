@@ -69,6 +69,9 @@ app.post("/register", upload.single("image"), async (req, res) => {
     [role, name, email, phone, address, hashedPassword, image],
     (err, result) => {
       if (err) {
+          if (err.code === "ER_DUP_ENTRY") {
+          return res.status(400).json({ message: "Email already registered! Please use a different email." });
+        }
         console.log(err);
         return res.status(500).json({ message: "Registration failed" });
       }

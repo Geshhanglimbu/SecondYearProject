@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import './login.css';
 
 const Login = () => {
@@ -8,6 +8,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +20,7 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/login", {
+      const response = await fetch("http://localhost:5001/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, role }),
@@ -29,7 +30,7 @@ const Login = () => {
 
       if (response.ok) {
         console.log("Login successful:", data);
-        // redirect or save token here
+        navigate("/dashboard");
       } else {
         setError(data.message || "Login failed");
       }
@@ -43,14 +44,13 @@ const Login = () => {
     <div className="container">
       <div className="login-box">
         <img
-        src="/download (23).jpeg" alt="logo image"
-        className="logo"
+          src="/download (23).jpeg" alt="logo image"
+          className="logo"
         />
 
         <h1>Welcome Back</h1>
         <p>Log in to manage your smart garbage system</p>
 
-        {/* Role Buttons */}
         <div className="role-selection">
           <button
             className={`role-btn ${role === "admin" ? "active" : ""}`}
@@ -74,7 +74,6 @@ const Login = () => {
           </button>
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleSubmit}>
           <label>Email Address</label>
           <div className="input-group">
@@ -96,7 +95,6 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-
             <span
               className="eye-password"
               onClick={() => setShowPassword(!showPassword)}
@@ -116,12 +114,9 @@ const Login = () => {
 
         {error && <p className="error">{error}</p>}
 
-        <p>
-         <p>
-        Don't have an account? <Link to="/register">Sign Up</Link>
-      </p>
+        {/* ✅ Fixed - removed nested <p> tags */}
+        <p>Don't have an account? <Link to="/register">Sign Up</Link></p>
 
-        </p>
       </div>
     </div>
   );
