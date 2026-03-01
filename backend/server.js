@@ -12,6 +12,13 @@ import cors from "cors";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
+
+// Auto-create uploads folder if missing
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
+  console.log("uploads folder created");
+}
 
 // Basic setup and middleware
 
@@ -110,6 +117,77 @@ app.post("/login", async (req, res) => {
     res.json({ message: "Login successful", user });
   });
 });
+/* ------------------ CITIZEN DASHBOARD API ------------------ */
+// Add this route to your server.js file
+
+app.get("/api/citizen/dashboard/:userId", (req, res) => {
+  const userId = req.params.userId;
+
+  // Get user's recent requests
+  const requestsQuery = `
+    SELECT * FROM requests 
+    WHERE user_id = ? 
+    ORDER BY created_at DESC 
+    LIMIT 5
+  `;
+
+  // Get next upcoming schedule
+  const scheduleQuery = `
+    SELECT * FROM requests 
+    WHERE user_id = ? AND pickup_date >= CURDATE() 
+    ORDER BY pickup_date ASC 
+    LIMIT 1
+  `;
+
+  // Get complaints
+  const complaintsQuery = `
+    SELECT * FROM complaints 
+    WHERE user_id = ? 
+    ORDER BY created_at DESC 
+    LIMIT 5
+  `;
+
+  // Run all queries
+  db.query(requestsQuery, [userId], (err, recentRequests) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Failed to fetch requests" });
+    }
+
+    db.query(scheduleQuery, [userId], (err, scheduleResults) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Failed to fetch schedule" });
+      }
+
+      db.query(complaintsQuery, [userId], (err, recentComplaints) => {
+        if (err) {
+          // If complaints table doesn't exist yet, just return empty array
+          recentComplaints = [];
+        }
+
+        // Calculate stats based on requests
+        const totalRequests = recentRequests.length;
+        const points = totalRequests * 100; // 100 points per request
+        const recycledKg = totalRequests * 10;
+        const treesPlanted = Math.floor(totalRequests / 2);
+        const wasteReduced = Math.min(totalRequests * 5, 100);
+
+        res.json({
+          stats: {
+            points,
+            recycledKg,
+            treesPlanted,
+            wasteReduced,
+          },
+          recentRequests,
+          recentComplaints,
+          nextSchedule: scheduleResults[0] || null,
+        });
+      });
+    });
+  });
+});
 
 /* ------------------ SUBMIT REQUEST API ------------------ */
 // Assuming you have a 'requests' table in your 'gms' database with columns like:
@@ -127,31 +205,46 @@ app.post("/login", async (req, res) => {
 // );
 // FOREIGN KEY (user_id) REFERENCES users(id);  // Optional, if you want to link to users
 
-app.post("/api/submit-request", upload.single("file"), (req, res) => {
-  const { type, description, pickupDate, pickupTime, userId } = req.body;  // Assuming userId is sent from frontend after login
 
-  if (!userId) {
-    return res.status(400).json({ message: "User ID is required" });
-  }
+app.post("/api/submit-request", upload.array("files", 5), (req, res) => {
+  const { type, description, pickupDate, pickupTime, userId, location } = req.body;
 
-  const image = req.file ? req.file.filename : null;
+  if (!userId) return res.status(400).json({ message: "User ID is required" });
 
-  const sql = 
-    "INSERT INTO requests (user_id, type, description, pickup_date, pickup_time, image) VALUES (?, ?, ?, ?, ?, ?)";
+  //  correctly get multiple images
+  const images = req.files && req.files.length > 0
+    ? req.files.map(f => f.filename).join(",")
+    : null;
 
-  db.query(
-    sql,
-    [userId, type, description, pickupDate, pickupTime, image],
-    (err, result) => {
-      if (err) {
-        console.log(err);
-        return res.status(500).json({ message: "Request submission failed" });
-      }
+  //  7 question marks for 7 values
+  const sql = "INSERT INTO requests (user_id, type, description, pickup_date, pickup_time, image, location) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-      res.status(200).json({ message: "Request submitted successfully!" });
+  db.query(sql, [userId, type, description, pickupDate, pickupTime, images, location || null], (err, result) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Request submission failed" });
     }
-  );
+    res.status(200).json({ message: "Request submitted successfully!" });
+  });
 });
+/* ------------------ GET USER REQUESTS API ------------------
+    THIS NEW ROUTE lets the citizen view all their past requests
+*/
+
+app.get("/api/requests/:userId", (req, res) => {
+  const userId = req.params.userId;
+
+  const sql = "SELECT * FROM requests WHERE user_id = ? ORDER BY created_at DESC";
+
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Failed to fetch requests" });
+    }
+    res.json(results);
+  });
+});
+
 
 /* ------------------ TEST ROUTE ------------------ */
 app.get("/test", (req, res) => {

@@ -7,18 +7,13 @@ const CitizenDashboard = () => {
   const [user, setUser] = useState(null);
   const [activeMenu, setActiveMenu] = useState("dashboard");
   const [stats, setStats] = useState(null);
-  const [requests, setRequests] = useState([]);
-  const [complaints, setComplaints] = useState([]);
   const [schedule, setSchedule] = useState(null);
+  const [pendingBills, setPendingBills] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get logged in user from localStorage
     const savedUser = localStorage.getItem("user");
-    if (!savedUser) {
-      navigate("/login");
-      return;
-    }
+    if (!savedUser) { navigate("/login"); return; }
     const parsedUser = JSON.parse(savedUser);
     setUser(parsedUser);
     fetchDashboardData(parsedUser.id);
@@ -26,12 +21,15 @@ const CitizenDashboard = () => {
 
   const fetchDashboardData = async (userId) => {
     try {
-      const res = await fetch(`http://localhost:5001/api/citizen/dashboard/${userId}`);
-      const data = await res.json();
+      const [dashRes, billsRes] = await Promise.all([
+        fetch(`http://localhost:5001/api/citizen/dashboard/${userId}`),
+        fetch(`http://localhost:5001/api/payments/bills/${userId}`),
+      ]);
+      const data = await dashRes.json();
+      const billsData = await billsRes.json();
       setStats(data.stats);
-      setRequests(data.recentRequests);
-      setComplaints(data.recentComplaints);
       setSchedule(data.nextSchedule);
+      setPendingBills(billsData.filter(b => b.status === "unpaid").length);
     } catch (err) {
       console.error("Failed to fetch dashboard data:", err);
     } finally {
@@ -45,13 +43,13 @@ const CitizenDashboard = () => {
   };
 
   const getEcoRank = (points) => {
-    if (points >= 5000) return { rank: "A+++", label: "Clean city, proud citizen. Your effort leads the way! 🏆" };
-    if (points >= 3000) return { rank: "A++", label: "Outstanding contributor to a greener community!" };
-    if (points >= 1000) return { rank: "A+", label: "Great job keeping your city clean!" };
-    return { rank: "B", label: "Keep going! Every effort counts." };
+    if (points >= 5000) return { rank: "A+++", desc: "Clean city, proud citizen. Your effort leads the way! 🏆" };
+    if (points >= 3000) return { rank: "A++", desc: "Outstanding contributor to a greener community!" };
+    if (points >= 1000) return { rank: "A+", desc: "Great job keeping your city clean!" };
+    return { rank: "B", desc: "Keep going! Every effort counts." };
   };
 
-  const ecoRank = stats ? getEcoRank(stats.points) : { rank: "—", label: "Loading..." };
+  const ecoRank = stats ? getEcoRank(stats.points) : { rank: "—", desc: "Loading..." };
 
   return (
     <div className="dashboard-wrapper">
@@ -59,134 +57,130 @@ const CitizenDashboard = () => {
       {/* NAVBAR */}
       <nav className="navbar">
         <div className="nav-logo">
-          <span className="logo-icon">♻</span>
+          <div className="logo-icon">♻</div>
           <span className="logo-text">EcoConnect</span>
         </div>
         <div className="nav-right">
-          <span className="hello-text">Hello {user?.name || "User"}</span>
+          <span className="hello-text">Hello, {user?.name || "User"}</span>
           <div className="avatar-circle">
-            {user?.image ? (
-              <img src={`http://localhost:5001/uploads/${user.image}`} alt="avatar" />
-            ) : (
-              <span>{user?.name?.[0]?.toUpperCase() || "U"}</span>
-            )}
+            {user?.image
+              ? <img src={`http://localhost:5001/uploads/${user.image}`} alt="avatar" />
+              : <span>{user?.name?.[0]?.toUpperCase() || "U"}</span>}
           </div>
           <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>
       </nav>
 
-      {/* MAIN CONTENT */}
+      {/* LAYOUT */}
       <div className="main-content">
 
-        {/* LEFT SIDEBAR */}
-        <div className="sidebar">
+        {/* SIDEBAR */}
+        <aside className="sidebar">
           <div className="sidebar-menu">
-            <div
-              className={`menu-item ${activeMenu === "dashboard" ? "active" : ""}`}
-              onClick={() => setActiveMenu("dashboard")}
-            >
-              <span className="menu-icon">📊</span> Dashboard
-            </div>
-            <div
-              className={`menu-item ${activeMenu === "request" ? "active" : ""}`}
-              onClick={() => { setActiveMenu("request"); navigate("/new-request"); }}
-            >
-              <span className="menu-icon">+</span> New Request
-            </div>
-            <div
-              className={`menu-item ${activeMenu === "complaints" ? "active" : ""}`}
-              onClick={() => { setActiveMenu("complaints"); navigate("/complaints"); }}
-            >
-              <span className="menu-icon">💬</span> Complaints
-            </div>
-            <div
-              className={`menu-item ${activeMenu === "schedule" ? "active" : ""}`}
-              onClick={() => { setActiveMenu("schedule"); navigate("/schedule"); }}
-            >
-              <span className="menu-icon">📅</span> Schedule
-            </div>
+            {[
+              { id: "dashboard",  icon: "📊", label: "Dashboard" },
+              { id: "request",    icon: "+",  label: "New Request",  path: "/new-request" },
+              { id: "complaints", icon: "💬", label: "Complaints",   path: "/complaints" },
+              { id: "schedule",   icon: "📅", label: "Schedule",     path: "/schedule" },
+              { id: "payment",    icon: "💳", label: "Payments",     path: "/payment", badge: pendingBills > 0 ? pendingBills : null },
+            ].map((item) => (
+              <div
+                key={item.id}
+                className={`menu-item ${activeMenu === item.id ? "active" : ""}`}
+                onClick={() => { setActiveMenu(item.id); if (item.path) navigate(item.path); }}
+              >
+                <span className="menu-icon">{item.icon}</span>
+                <span>{item.label}</span>
+                {item.badge && <span className="sidebar-badge">{item.badge}</span>}
+              </div>
+            ))}
           </div>
-
           <div className="sidebar-quote">
             <p>"The best way to reduce waste is to not produce it."</p>
           </div>
-        </div>
+        </aside>
 
-        {/* RIGHT CONTENT */}
+        {/* CONTENT */}
         <div className="content-area">
-
           {loading ? (
             <div className="loading">Loading your dashboard...</div>
           ) : (
             <>
-              {/* ECO RANK CARD */}
-              <div className="eco-rank-card">
-                <h3>Your eco rank</h3>
-                <div className="rank-badge">{ecoRank.rank}</div>
-                <p className="rank-label">{ecoRank.label}</p>
-                <hr />
-                <p className="points-label">You have earned</p>
-                <div className="points-value">{stats?.points?.toLocaleString() || 0} points</div>
+              {/* WELCOME BANNER */}
+              <div className="welcome-banner">
+                <div className="welcome-text">
+                  <h2>Welcome back, {user?.name?.split(" ")[0] || "Citizen"}! 👋</h2>
+                  <p>Here's your environmental impact at a glance.</p>
+                </div>
+                <div className="eco-rank-badge">
+                  <div className="rank-label">Your Eco Rank</div>
+                  <div className="rank-value">{ecoRank.rank}</div>
+                  <div className="rank-desc">{ecoRank.desc}</div>
+                  <div className="points-row">
+                    <div className="points-num">{stats?.points?.toLocaleString() || 0}</div>
+                    <div className="points-sub">points earned</div>
+                  </div>
+                </div>
               </div>
 
-              {/* YOUR ACTIVITY */}
-              <h2 className="section-title">Your Activity</h2>
-
+              {/* ACTIVITY */}
+              <div className="section-title">Your Activity</div>
               <div className="activity-cards">
                 <div className="activity-card">
-                  <div className="activity-icon recycle-icon">♻</div>
-                  <p className="activity-label">Recycled Items</p>
-                  <p className="activity-value green">{stats?.recycledKg || 0} kg</p>
+                  <div className="activity-icon">♻</div>
+                  <div className="activity-label">Recycled Items</div>
+                  <div className="activity-value green">{stats?.recycledKg || 0} kg</div>
                 </div>
                 <div className="activity-card">
-                  <div className="activity-icon tree-icon">🌴</div>
-                  <p className="activity-label">Trees Planted</p>
-                  <p className="activity-value green">{stats?.treesPlanted || 0}</p>
+                  <div className="activity-icon">🌴</div>
+                  <div className="activity-label">Trees Planted</div>
+                  <div className="activity-value green">{stats?.treesPlanted || 0}</div>
                 </div>
                 <div className="activity-card">
-                  <div className="activity-icon shield-icon">🛡</div>
-                  <p className="activity-label">Waste Reduced</p>
-                  <p className="activity-value green">{stats?.wasteReduced || 0}%</p>
+                  <div className="activity-icon">🛡</div>
+                  <div className="activity-label">Waste Reduced</div>
+                  <div className="activity-value green">{stats?.wasteReduced || 0}%</div>
                 </div>
               </div>
 
-              {/* BOTTOM CARDS */}
+              {/* QUICK ACTIONS */}
+              <div className="section-title">Quick Actions</div>
               <div className="bottom-cards">
-
-                {/* Schedule a new request */}
                 <div className="bottom-card">
-                  <h3>Schedule a new Request</h3>
+                  <h3>📦 Schedule a Request</h3>
                   <p>Easily schedule a new waste collection or recycling service with just a few clicks.</p>
-                  <button className="schedule-btn" onClick={() => navigate("/new-request")}>
-                    Schedule Now →
-                  </button>
+                  <button className="schedule-btn" onClick={() => navigate("/new-request")}>Schedule Now →</button>
                 </div>
-
-                {/* Your complaints */}
                 <div className="bottom-card">
-                  <h3>Your complaints</h3>
+                  <h3>💬 Your Complaints</h3>
                   <p>View the status and details of your submitted complaints and feedback.</p>
-                  <button className="outline-btn" onClick={() => navigate("/complaints")}>
-                    View Complaints →
-                  </button>
+                  <button className="outline-btn" onClick={() => navigate("/complaints")}>View Complaints →</button>
                 </div>
-
-                {/* Collection Status */}
                 <div className="bottom-card">
-                  <h3>Collection Status</h3>
+                  <h3>📅 Collection Status</h3>
                   <p>Keep track of your upcoming and past waste collection schedules.</p>
-                  {schedule ? (
-                    <p className="next-collection">
-                      Next collection: {new Date(schedule.pickup_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                    </p>
-                  ) : (
-                    <p className="next-collection">No upcoming collection</p>
-                  )}
-                  <button className="text-btn" onClick={() => navigate("/schedule")}>
-                    Details →
-                  </button>
+                  {schedule
+                    ? <p className="next-collection">Next: {new Date(schedule.pickup_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
+                    : <p className="next-collection">No upcoming collection</p>
+                  }
+                  <button className="text-btn" onClick={() => navigate("/schedule")}>View Details →</button>
                 </div>
 
+                {/* ---- NEW: PAYMENT QUICK ACTION ---- */}
+                <div className="bottom-card payment-card">
+                  <h3>💳 Payments</h3>
+                  <p>Pay your waste collection bills and view your full payment history.</p>
+                  {pendingBills > 0
+                    ? <p className="pending-bills-note">⚠️ You have <strong>{pendingBills}</strong> unpaid bill{pendingBills > 1 ? "s" : ""}.</p>
+                    : <p className="no-bills-note">✅ No pending bills.</p>
+                  }
+                  <button
+                    className={pendingBills > 0 ? "pay-now-quick-btn" : "text-btn"}
+                    onClick={() => navigate("/payment")}
+                  >
+                    {pendingBills > 0 ? "Pay Now →" : "View Payments →"}
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -198,13 +192,12 @@ const CitizenDashboard = () => {
         <div className="footer-inner">
           <div className="footer-brand">
             <div className="footer-logo">
-              <span className="logo-icon">♻</span>
+              <div className="logo-icon" style={{width:"32px",height:"32px",fontSize:"16px"}}>♻</div>
               <span className="logo-text">EcoConnect</span>
             </div>
-            <p>Connecting communities for a greener future. Simplify your waste management and boost your eco-score.</p>
+            <p>Connecting communities for a greener future.</p>
             <p className="copyright">© 2025 EcoConnect. All rights reserved.</p>
           </div>
-
           <div className="footer-links">
             <h4>Quick Links</h4>
             <a href="#">Dashboard</a>
@@ -212,16 +205,10 @@ const CitizenDashboard = () => {
             <a href="#">Complaints</a>
             <a href="#">About Us</a>
             <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
           </div>
-
           <div className="footer-connect">
             <h4>Connect</h4>
-            <div className="social-icons">
-              <span>🐦</span>
-              <span>💼</span>
-              <span>📷</span>
-            </div>
+            <div className="social-icons">🐦 💼 📷</div>
             <p>info@ecoconnect.com</p>
           </div>
         </div>
