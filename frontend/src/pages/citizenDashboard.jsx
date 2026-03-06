@@ -7,7 +7,7 @@ const CitizenDashboard = () => {
   const [user, setUser] = useState(null);
   const [activeMenu, setActiveMenu] = useState("dashboard");
   const [stats, setStats] = useState(null);
-  const [schedule, setSchedule] = useState(null);
+  const [latestPayment, setLatestPayment] = useState(null);
   const [pendingBills, setPendingBills] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -21,15 +21,16 @@ const CitizenDashboard = () => {
 
   const fetchDashboardData = async (userId) => {
     try {
-      const [dashRes, billsRes] = await Promise.all([
-        fetch(`http://localhost:5001/api/citizen/dashboard/${userId}`),
-        fetch(`http://localhost:5001/api/payments/bills/${userId}`),
-      ]);
+      // ✅ ONE fetch call only - dashboard now returns latestPayment + pendingCount
+      // ❌ REMOVED: fetch(`/api/payments/bills/${userId}`) — this URL never existed!
+      const dashRes = await fetch(`http://localhost:5001/api/citizen/dashboard/${userId}`);
       const data = await dashRes.json();
-      const billsData = await billsRes.json();
+
       setStats(data.stats);
-      setSchedule(data.nextSchedule);
-      setPendingBills(billsData.filter(b => b.status === "unpaid").length);
+      setLatestPayment(data.latestPayment || null);
+      // pendingCount comes from backend, fallback: 1 if latestPayment exists, else 0
+      setPendingBills(data.pendingCount || (data.latestPayment ? 1 : 0));
+
     } catch (err) {
       console.error("Failed to fetch dashboard data:", err);
     } finally {
@@ -44,9 +45,9 @@ const CitizenDashboard = () => {
 
   const getEcoRank = (points) => {
     if (points >= 5000) return { rank: "A+++", desc: "Clean city, proud citizen. Your effort leads the way! 🏆" };
-    if (points >= 3000) return { rank: "A++", desc: "Outstanding contributor to a greener community!" };
-    if (points >= 1000) return { rank: "A+", desc: "Great job keeping your city clean!" };
-    return { rank: "B", desc: "Keep going! Every effort counts." };
+    if (points >= 3000) return { rank: "A++",  desc: "Outstanding contributor to a greener community!" };
+    if (points >= 1000) return { rank: "A+",   desc: "Great job keeping your city clean!" };
+    return                      { rank: "B",    desc: "Keep going! Every effort counts." };
   };
 
   const ecoRank = stats ? getEcoRank(stats.points) : { rank: "—", desc: "Loading..." };
@@ -81,8 +82,8 @@ const CitizenDashboard = () => {
               { id: "dashboard",  icon: "📊", label: "Dashboard" },
               { id: "request",    icon: "+",  label: "New Request",  path: "/new-request" },
               { id: "complaints", icon: "💬", label: "Complaints",   path: "/complaints" },
-              { id: "schedule",   icon: "📅", label: "Schedule",     path: "/schedule" },
-              { id: "payment",    icon: "💳", label: "Payments",     path: "/payment", badge: pendingBills > 0 ? pendingBills : null },
+              { id: "payment",    icon: "💳", label: "Payments",     path: "/payment",
+                badge: pendingBills > 0 ? pendingBills : null },
             ].map((item) => (
               <div
                 key={item.id}
@@ -100,7 +101,7 @@ const CitizenDashboard = () => {
           </div>
         </aside>
 
-        {/* CONTENT */}
+        {/* CONTENT AREA */}
         <div className="content-area">
           {loading ? (
             <div className="loading">Loading your dashboard...</div>
@@ -123,7 +124,7 @@ const CitizenDashboard = () => {
                 </div>
               </div>
 
-              {/* ACTIVITY */}
+              {/* ACTIVITY CARDS */}
               <div className="section-title">Your Activity</div>
               <div className="activity-cards">
                 <div className="activity-card">
@@ -146,41 +147,66 @@ const CitizenDashboard = () => {
               {/* QUICK ACTIONS */}
               <div className="section-title">Quick Actions</div>
               <div className="bottom-cards">
+
                 <div className="bottom-card">
                   <h3>📦 Schedule a Request</h3>
                   <p>Easily schedule a new waste collection or recycling service with just a few clicks.</p>
                   <button className="schedule-btn" onClick={() => navigate("/new-request")}>Schedule Now →</button>
                 </div>
+
                 <div className="bottom-card">
                   <h3>💬 Your Complaints</h3>
                   <p>View the status and details of your submitted complaints and feedback.</p>
                   <button className="outline-btn" onClick={() => navigate("/complaints")}>View Complaints →</button>
                 </div>
-                <div className="bottom-card">
-                  <h3>📅 Collection Status</h3>
-                  <p>Keep track of your upcoming and past waste collection schedules.</p>
-                  {schedule
-                    ? <p className="next-collection">Next: {new Date(schedule.pickup_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
-                    : <p className="next-collection">No upcoming collection</p>
-                  }
-                  <button className="text-btn" onClick={() => navigate("/schedule")}>View Details →</button>
-                </div>
 
-                {/* ---- NEW: PAYMENT QUICK ACTION ---- */}
+                {/* PAYMENT CARD */}
                 <div className="bottom-card payment-card">
-                  <h3>💳 Payments</h3>
-                  <p>Pay your waste collection bills and view your full payment history.</p>
-                  {pendingBills > 0
-                    ? <p className="pending-bills-note">⚠️ You have <strong>{pendingBills}</strong> unpaid bill{pendingBills > 1 ? "s" : ""}.</p>
-                    : <p className="no-bills-note">✅ No pending bills.</p>
-                  }
+                  <div className="payment-card-top">
+                    <h3>💳 Payments</h3>
+                    {latestPayment && (
+                      <span className={`payment-status-badge ${
+                        latestPayment.status === "overdue"  ? "payment-overdue"  :
+                        latestPayment.status === "pending"  ? "payment-pending"  : ""
+                      }`}>
+                        {latestPayment.status}
+                      </span>
+                    )}
+                  </div>
+
+                  {latestPayment ? (
+                    <div className="payment-info">
+                      <div className="payment-amount-row">
+                        <span className="payment-currency">Rs.</span>
+                        <span className="payment-amount">
+                          {Number(latestPayment.amount).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="payment-meta">
+                        <span>📅 Due: {new Date(latestPayment.due_date).toLocaleDateString("en-US", {
+                          month: "short", day: "numeric", year: "numeric"
+                        })}</span>
+                        <span>📋 {latestPayment.description || "Monthly waste fee"}</span>
+                      </div>
+                      <p className="pending-bills-note">
+                        ⚠️ You have <strong>{pendingBills}</strong> unpaid bill{pendingBills > 1 ? "s" : ""}.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="payment-empty">
+                      <span className="payment-empty-icon">✅</span>
+                      <p className="no-bills-note">No pending bills. You're all clear!</p>
+                    </div>
+                  )}
+
                   <button
-                    className={pendingBills > 0 ? "pay-now-quick-btn" : "text-btn"}
+                    className={latestPayment ? "pay-now-quick-btn" : "text-btn"}
                     onClick={() => navigate("/payment")}
                   >
-                    {pendingBills > 0 ? "Pay Now →" : "View Payments →"}
+                    {latestPayment ? "Pay Now →" : "View Payments →"}
                   </button>
                 </div>
+
               </div>
             </>
           )}
