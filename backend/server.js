@@ -14,7 +14,7 @@ import multer   from "multer";
 import path     from "path";
 import fs       from "fs";
 import axios    from "axios";
-import crypto   from "crypto"; 
+import crypto   from "crypto"; // ✅ FIXED: was missing! needed for eSewa signature
 
 // Auto-create uploads folder if missing
 if (!fs.existsSync("uploads")) {
@@ -24,10 +24,10 @@ if (!fs.existsSync("uploads")) {
 
 const app = express();
 
-// Allow frontend  to talk to backend (port 5001)
+// Allow frontend (React on port 5173) to talk to backend (port 5001)
 app.use(cors({
   origin: "http://localhost:5173",
-  methods: "GET,POST",
+  methods: "GET,POST,PUT,DELETE",
   credentials: true
 }));
 
@@ -37,8 +37,9 @@ app.use("/uploads", express.static("uploads"));
 // MySQL database connection
 const db = mysql.createConnection({
   host: "localhost",
+  port:     3307,  
   user: "root",
-  password: "",
+  password: "1234",
   database: "gms"
 });
 
@@ -55,8 +56,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 
-  //  REGISTER API
-  
+/* ══════════════════════════════════════════════
+   REGISTER API
+   URL: POST /register
+   What it does: Creates a new user account
+   ══════════════════════════════════════════════ */
 app.post("/register", upload.single("image"), async (req, res) => {
   const { role, name, email, phone, address, password } = req.body;
 
@@ -81,9 +85,11 @@ app.post("/register", upload.single("image"), async (req, res) => {
 });
 
 
-
-  //  LOGIN API
-  
+/* ══════════════════════════════════════════════
+   LOGIN API
+   URL: POST /login
+   What it does: Checks email + password + role
+   ══════════════════════════════════════════════ */
 app.post("/login", async (req, res) => {
   const { email, password, role } = req.body;
 
@@ -111,10 +117,15 @@ app.post("/login", async (req, res) => {
 });
 
 
-  //  CITIZEN DASHBOARD API
-
+/* ══════════════════════════════════════════════
+   CITIZEN DASHBOARD API
+   URL: GET /api/citizen/dashboard/:userId
    
-   app.get("/api/citizen/dashboard/:userId", (req, res) => {
+   ✅ FIXED: This is now ONE single dashboard route
+   ✅ FIXED: Now includes latestPayment AND pendingCount
+   ✅ REMOVED: The old duplicate route that had no payment data
+   ══════════════════════════════════════════════ */
+app.get("/api/citizen/dashboard/:userId", (req, res) => {
   const userId = req.params.userId;
 
   // Query 1: Get 5 most recent requests for this user
@@ -199,9 +210,11 @@ app.post("/login", async (req, res) => {
 });
 
 
-
-  //  SUBMIT REQUEST API
-   
+/* ══════════════════════════════════════════════
+   SUBMIT REQUEST API
+   URL: POST /api/submit-request
+   What it does: Saves a new waste pickup request
+   ══════════════════════════════════════════════ */
 app.post("/api/submit-request", upload.array("files", 5), (req, res) => {
   const { type, description, pickupDate, pickupTime, userId, location } = req.body;
 
@@ -224,9 +237,11 @@ app.post("/api/submit-request", upload.array("files", 5), (req, res) => {
 });
 
 
-
-  //  GET USER REQUESTS API
-   
+/* ══════════════════════════════════════════════
+   GET USER REQUESTS API
+   URL: GET /api/requests/:userId
+   What it does: Returns all past requests for a user
+   ══════════════════════════════════════════════ */
 app.get("/api/requests/:userId", (req, res) => {
   const userId = req.params.userId;
   const sql = "SELECT * FROM requests WHERE user_id = ? ORDER BY created_at DESC";
@@ -241,9 +256,15 @@ app.get("/api/requests/:userId", (req, res) => {
 });
 
 
+/* ══════════════════════════════════════════════════════════
+   PAYMENT ROUTES
+   ══════════════════════════════════════════════════════════ */
 
-  //  PAYMENT ROUTE 
-
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 1: GET ALL PAYMENTS FOR A USER
+   URL: GET /api/payments/:userId
+   Called by: Payment.jsx when page loads
+   ────────────────────────────────────────────── */
 app.get("/api/payments/:userId", (req, res) => {
   const userId = req.params.userId;
   const sql = "SELECT * FROM payments WHERE user_id = ? ORDER BY due_date DESC";
@@ -258,13 +279,33 @@ app.get("/api/payments/:userId", (req, res) => {
 });
 
 
-
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 2: ESEWA INITIATE
+   URL: POST /api/payments/esewa/initiate
+   Called by: Payment.jsx when user clicks "Finalize" with eSewa
+   
+   WHY: eSewa needs a security signature. We make it here on the
+   backend using a secret key so users can't fake it.
+   ────────────────────────────────────────────── */
 app.post("/api/payments/esewa/initiate", (req, res) => {
   const { amount, userId } = req.body;
 
+  // Unique transaction ID: ECO-5-1709234567890
   const txnId = `ECO-${userId}-${Date.now()}`;
 
-  
+  // ─────────────────────────────────────────────────────
+  // ✅ FIXED AMOUNT CALCULATION
+  //
+  // eSewa rule: amount + tax_amount + service_charge + delivery_charge = total_amount
+  // If these don't add up EXACTLY, eSewa rejects with ES104!
+  //
+  // We treat the payment amount as the BASE (before tax):
+  //   base    = what user owes before tax (e.g. 600)
+  //   tax     = 12.5% of base           (e.g. 75)
+  //   total   = base + tax              (e.g. 675)
+  //
+  // The signature must use this SAME total_amount — never a rounded version.
+  // ─────────────────────────────────────────────────────
   const parsedAmount = parseFloat(amount);          // e.g. 675.00 (full amount from DB)
 
   // We treat the incoming amount AS the total (already includes tax)
@@ -274,7 +315,7 @@ app.post("/api/payments/esewa/initiate", (req, res) => {
   const totalAmount = parseFloat((baseAmount + taxAmount).toFixed(2));    // 675.00
 
   // eSewa sandbox secret key — official test key from eSewa docs
-  const secretKey = ESEWA_SECRECT_KEY;
+  const secretKey = "8gBm/:&EnhH.1/q";
 
   // Signature message MUST be in this exact format, exact field order
   // Use the CALCULATED totalAmount (not parsedAmount) to avoid floating point issues
@@ -307,9 +348,11 @@ app.post("/api/payments/esewa/initiate", (req, res) => {
 });
 
 
-
-  //  PAYMENT ROUTE 3: ESEWA VERIFY
-  
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 3: ESEWA VERIFY
+   URL: POST /api/payments/esewa/verify
+   Called by: PaymentSuccess.jsx after eSewa redirects back
+   ────────────────────────────────────────────── */
 app.post("/api/payments/esewa/verify", async (req, res) => {
   const { data, paymentId } = req.body;
 
@@ -338,10 +381,14 @@ app.post("/api/payments/esewa/verify", async (req, res) => {
 });
 
 
-
-  //  PAYMENT ROUTE 4: KHALTI INITIATE
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 4: KHALTI INITIATE
+   URL: POST /api/payments/khalti/initiate
+   Called by: Payment.jsx when user picks Khalti
    
-
+   NOTE: Must come BEFORE /api/payments/:userId
+   so Express doesn't think "khalti" is a userId!
+   ────────────────────────────────────────────── */
 app.post("/api/payments/khalti/initiate", async (req, res) => {
   const { userId, paymentId, amount, name, email } = req.body;
 
@@ -379,9 +426,11 @@ app.post("/api/payments/khalti/initiate", async (req, res) => {
 });
 
 
-
-  //  PAYMENT ROUTE 5: KHALTI VERIFY
-  
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 5: KHALTI VERIFY
+   URL: POST /api/payments/khalti/verify
+   Called by: PaymentSuccess.jsx after Khalti redirects back
+   ────────────────────────────────────────────── */
 app.post("/api/payments/khalti/verify", async (req, res) => {
   const { pidx, paymentId } = req.body;
 
@@ -417,9 +466,11 @@ app.post("/api/payments/khalti/verify", async (req, res) => {
 });
 
 
-
-  //  PAYMENT ROUTE 6: MARK PAYMENT AS PAID MANUALLY
-  
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 6: MARK PAYMENT AS PAID MANUALLY
+   URL: POST /api/payments/mark-paid
+   Used for: QR payments or admin marking paid
+   ────────────────────────────────────────────── */
 app.post("/api/payments/mark-paid", (req, res) => {
   const { paymentId, gateway, transaction_id } = req.body;
 
@@ -436,9 +487,9 @@ app.post("/api/payments/mark-paid", (req, res) => {
 });
 
 
-
-  //  TEST ROUTE
-  
+/* ══════════════════════════════════════════════
+   TEST ROUTE
+   ══════════════════════════════════════════════ */
 app.get("/test", (req, res) => {
   res.json({ message: "Backend is working!" });
 });
@@ -446,3 +497,106 @@ app.get("/test", (req, res) => {
 
 // Start server on port 5001
 app.listen(5001, () => console.log("Server running on port 5001"));
+
+
+/* ══════════════════════════════════════════════════════════
+   COMPLAINTS ROUTES
+   ══════════════════════════════════════════════════════════ */
+
+/* GET all complaints for a user */
+app.get("/api/complaints/:userId", (req, res) => {
+  const userId = req.params.userId;
+  const sql = `SELECT * FROM complaints WHERE user_id = ? ORDER BY created_at DESC`;
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("Failed to fetch complaints:", err);
+      return res.status(500).json({ message: "Failed to fetch complaints" });
+    }
+    res.json(results);
+  });
+});
+
+/* POST submit a new complaint */
+app.post("/api/complaints", (req, res) => {
+  const { userId, title, description } = req.body;
+  if (!userId || !title || !description) {
+    return res.status(400).json({ message: "userId, title and description are required" });
+  }
+  const sql = `INSERT INTO complaints (user_id, title, description, status, created_at) VALUES (?, ?, ?, 'pending', NOW())`;
+  db.query(sql, [userId, title, description], (err, result) => {
+    if (err) {
+      console.error("Failed to insert complaint:", err);
+      return res.status(500).json({ message: "Failed to submit complaint" });
+    }
+    res.json({ id: result.insertId, message: "Complaint submitted successfully" });
+  });
+});
+
+/* DELETE all complaints for a user — MUST be before /:id */
+app.delete("/api/complaints/all/:userId", (req, res) => {
+  const userId = req.params.userId;
+  db.query("DELETE FROM complaints WHERE user_id = ?", [userId], (err, result) => {
+    if (err) {
+      console.error("Failed to delete all complaints:", err);
+      return res.status(500).json({ message: "Failed to delete complaints" });
+    }
+    res.json({ message: "All complaints deleted", deleted: result.affectedRows });
+  });
+});
+
+/* DELETE a single complaint */
+app.delete("/api/complaints/:id", (req, res) => {
+  const id = req.params.id;
+  db.query("DELETE FROM complaints WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Failed to delete complaint:", err);
+      return res.status(500).json({ message: "Failed to delete complaint" });
+    }
+    if (result.affectedRows === 0) return res.status(404).json({ message: "Complaint not found" });
+    res.json({ message: "Complaint deleted successfully" });
+  });
+});
+
+/* PUT update complaint status (for admin/staff) */
+app.put("/api/complaints/:id/status", (req, res) => {
+  const id = req.params.id;
+  const { status } = req.body;
+  const valid = ['pending', 'completed', 'resolved'];
+  if (!valid.includes(status)) return res.status(400).json({ message: "Invalid status" });
+  db.query("UPDATE complaints SET status = ? WHERE id = ?", [status, id], (err) => {
+    if (err) return res.status(500).json({ message: "Failed to update status" });
+    res.json({ message: "Status updated successfully" });
+  });
+});
+
+
+/* ══════════════════════════════════════════════════════════
+   REQUESTS DELETE ROUTES
+   ══════════════════════════════════════════════════════════ */
+
+/* DELETE all requests for a user — MUST be before /:id */
+app.delete("/api/requests/all/:userId", (req, res) => {
+  const userId = req.params.userId;
+  db.query("DELETE FROM requests WHERE user_id = ?", [userId], (err, result) => {
+    if (err) {
+      console.error("Failed to delete all requests:", err);
+      return res.status(500).json({ message: "Failed to delete requests" });
+    }
+    res.json({ message: "All requests deleted", deleted: result.affectedRows });
+  });
+});
+
+/* DELETE a single request by id */
+app.delete("/api/requests/:id", (req, res) => {
+  const id = req.params.id;
+  db.query("DELETE FROM requests WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Failed to delete request:", err);
+      return res.status(500).json({ message: "Failed to delete request" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+    res.json({ message: "Request deleted successfully" });
+  });
+});

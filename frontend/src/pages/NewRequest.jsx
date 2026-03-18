@@ -131,9 +131,9 @@ const NewRequest = () => {
             <div className="nr-menu-item" onClick={() => navigate("/complaints")}>
               <span>💬</span><span>Complaints</span>
             </div>
-            <div className="nr-menu-item" onClick={() => navigate("/schedule")}>
+            {/* <div className="nr-menu-item" onClick={() => navigate("/schedule")}>
               <span>📅</span><span>Schedule</span>
-            </div>
+            </div> */}
             <div className="nr-menu-item" onClick={() => navigate("/payment")}>
               <span>💳</span><span>Payment</span>
             </div>
