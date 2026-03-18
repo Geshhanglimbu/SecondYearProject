@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Fraunces:wght@700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Outfit', sans-serif; background: #f1f5f9; }
+
+.ps-page {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+
+.ps-card {
+  background: white; border-radius: 20px; padding: 48px 40px;
+  text-align: center; max-width: 420px; width: 100%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+
+.ps-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  font-size: 28px; font-weight: 800; display: flex;
+  align-items: center; justify-content: center;
+}
+.ps-icon-success { background: #d5f5e3; color: #27ae60; }
+.ps-icon-fail { background: #fee2e2; color: #dc2626; }
+
+.ps-title { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 700; color: #0f1923; }
+.ps-title-fail { color: #dc2626; }
+.ps-desc { font-size: 14px; color: #64748b; line-height: 1.6; max-width: 320px; }
+.ps-countdown { font-size: 13px; color: #94a3b8; }
+
+.ps-btn {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: white; border: none; padding: 13px 32px;
+  border-radius: 11px; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: 'Outfit', sans-serif;
+  transition: all 0.2s; box-shadow: 0 4px 14px rgba(46,204,113,0.35);
+}
+.ps-btn:hover { transform: translateY(-1px); }

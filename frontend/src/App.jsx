@@ -1,15 +1,28 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import Login from './pages/login.jsx'
+import { Routes, Route } from "react-router-dom";
+import Login from "./pages/login.jsx";
+import Register from "./pages/Register.jsx";
+import CitizenDashboard from "./pages/citizenDashboard.jsx";
+import NewRequest from "./pages/NewRequest.jsx";
+import Payment from "./pages/Payment";
+import PaymentSuccess, { PaymentFailed } from "./pages/PaymentSuccess";
+import Complaints from "./pages/Complaints";
 
 
 function App() {
-  return(
-     <div className="login">
-    <Login/>
-  </div>
-);
+  return (
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/dashboard" element={<CitizenDashboard />} />
+      <Route path="/new-request" element={<NewRequest />} />
+      <Route path="/payment"        element={<Payment />} />
+      <Route path="/payment/success" element={<PaymentSuccess />} />
+      <Route path="/payment/failed"  element={<PaymentFailed />} />
+      <Route path="/complaints" element={<Complaints />} />
+      
+    </Routes>
+  );
 }
-export default App
+
+export default App;

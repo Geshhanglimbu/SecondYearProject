@@ -1,10 +1,16 @@
 import React, { useState } from "react";
-import "./Register.css";
+import { useNavigate, Link } from "react-router-dom";
+import "./register.css";
 
 function Register() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [image, setImage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [form, setForm] = useState({
     role: "citizen",
@@ -16,173 +22,234 @@ function Register() {
     confirmPassword: "",
   });
 
-  const [image, setImage] = useState(null);
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // PHOTO PREVIEW
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     setImage(file);
     if (file) setImagePreview(URL.createObjectURL(file));
   };
 
-  // SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match!");
+      return;
+    }
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
 
     const formData = new FormData();
-    Object.keys(form).forEach((key) => formData.append(key, form[key]));
+    Object.keys(form).forEach((key) => {
+      if (key !== "confirmPassword") formData.append(key, form[key]);
+    });
     if (image) formData.append("image", image);
 
-    const res = await fetch("http://localhost:5001/register", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch("http://localhost:5001/register", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
 
-    const data = await res.json();
-    alert(data.message);
+      if (res.ok) {
+        setSuccess("Account created successfully! Redirecting to login...");
+        setTimeout(() => navigate("/login"), 2000);
+      } else {
+        setError(data.message || "Registration failed.");
+      }
+    } catch (err) {
+      setError("Server error. Make sure your backend is running.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="register-page">
+    <div className="reg-page">
 
-      {/* LEFT SIDE */}
-      <div className="left-side">
-        <img src="/gms.png" className="left-image" alt="Government Banner" />
-
-        <h1 className="left-title">Join Us</h1>
-        <p className="left-text">
-          Become part of a cleaner, safer, and smarter community.
-          Register your account to access your municipal services.
-        </p>
-      </div>
-
-      {/* RIGHT SIDE */}
-      <div className="right-side">
-
-        <h2 className="form-title">Register Here</h2>
-
-        <form className="form-container" onSubmit={handleSubmit}>
-
-          {/* Photo Upload */}
-          <div className="upload-wrapper">
-            <label htmlFor="profileUpload" className="upload-circle">
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="preview-img"
-                />
-              ) : (
-                <span className="upload-text-inside">Upload Photo</span>
-              )}
-            </label>
-
-            <input
-              type="file"
-              id="profileUpload"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={handleImageChange}
-            />
-
-            <div className="upload-text">Profile Picture</div>
+      {/* LEFT PANEL */}
+      <div className="reg-left">
+        <div className="reg-left-inner">
+          <div className="reg-brand">
+            <span className="reg-brand-icon">♻</span>
+            <span className="reg-brand-name">EcoConnect</span>
           </div>
 
-          {/* Role */}
-          <label>I am a...</label>
-          <select
-            className="input-select"
-            onChange={(e) => setForm({ ...form, role: e.target.value })}
-          >
-            <option value="citizen">Citizen</option>
-            <option value="admin">Administration</option>
-            <option value="staff">Staff</option>
-          </select>
-
-          {/* Full Name */}
-          <label>Full Name</label>
-          <input
-            type="text"
-            placeholder="Ruwan"
-            className="input-field"
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-
-          {/* Email */}
-          <label>Email Address</label>
-          <input
-            type="email"
-            placeholder="you@example.com"
-            className="input-field"
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-          />
-
-          {/* Phone */}
-          <label>Phone Number</label>
-          <input
-            type="text"
-            placeholder="9800000000"
-            className="input-field"
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          />
-
-          {/* Address */}
-          <label>Address</label>
-          <input
-            type="text"
-            placeholder="Your Address"
-            className="input-field"
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
-          />
-
-          {/* Password */}
-          <label>Create Password</label>
-          <div className="password-row">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="********"
-              className="input-field"
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-            <button
-              type="button"
-              className="show-btn"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? "Hide" : "Show"}
-            </button>
-          </div>
-
-          {/* Confirm Password */}
-          <label>Confirm Password</label>
-          <div className="password-row">
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              placeholder="********"
-              className="input-field"
-              onChange={(e) =>
-                setForm({ ...form, confirmPassword: e.target.value })
-              }
-            />
-            <button
-              type="button"
-              className="show-btn"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              {showConfirmPassword ? "Hide" : "Show"}
-            </button>
-          </div>
-
-          {/* Button */}
-          <button className="register-btn" type="submit">
-            Register
-          </button>
-
-          <p className="login-text">
-            Already have an account? <a href="/login">Log in</a>
+          <h1 className="reg-heading">
+            Start Making a <span className="reg-highlight">Difference</span><br />
+            Today
+          </h1>
+          <p className="reg-sub">
+            Join thousands of citizens already using EcoConnect to manage waste, earn eco-points, and build greener communities.
           </p>
-        </form>
+
+          <div className="reg-features">
+            <div className="reg-feature">
+              <span className="reg-feature-icon">🌱</span>
+              <div>
+                <div className="reg-feature-title">Earn Eco Points</div>
+                <div className="reg-feature-desc">Get rewarded for every recycling action</div>
+              </div>
+            </div>
+            <div className="reg-feature">
+              <span className="reg-feature-icon">📅</span>
+              <div>
+                <div className="reg-feature-title">Smart Scheduling</div>
+                <div className="reg-feature-desc">Book waste pickups in seconds</div>
+              </div>
+            </div>
+            <div className="reg-feature">
+              <span className="reg-feature-icon">📊</span>
+              <div>
+                <div className="reg-feature-title">Track Your Impact</div>
+                <div className="reg-feature-desc">See your contribution to a cleaner city</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="reg-circles">
+          <div className="reg-circle rc1" />
+          <div className="reg-circle rc2" />
+          <div className="reg-circle rc3" />
+        </div>
       </div>
+
+      {/* RIGHT PANEL */}
+      <div className="reg-right">
+        <div className="reg-card">
+
+          <div className="reg-card-header">
+            <h2>Create Account</h2>
+            <p>Join EcoConnect and start your green journey</p>
+          </div>
+
+          {error   && <div className="reg-error">⚠ {error}</div>}
+          {success && <div className="reg-success">✅ {success}</div>}
+
+          <form onSubmit={handleSubmit} className="reg-form">
+
+            {/* AVATAR UPLOAD */}
+            <div className="reg-avatar-row">
+              <label htmlFor="avatarUpload" className="reg-avatar-circle">
+                {imagePreview
+                  ? <img src={imagePreview} alt="preview" />
+                  : <span>📷</span>}
+              </label>
+              <input id="avatarUpload" type="file" accept="image/*"
+                style={{ display: "none" }} onChange={handleImageChange} />
+              <div className="reg-avatar-info">
+                <label htmlFor="avatarUpload" className="reg-avatar-btn">
+                  {imagePreview ? "Change Photo" : "Upload Photo"}
+                </label>
+                <span className="reg-avatar-hint">Optional — JPG, PNG up to 5MB</span>
+              </div>
+            </div>
+
+            {/* ROLE TABS */}
+            <div className="reg-field">
+              <label>Register as</label>
+              <div className="reg-role-tabs">
+                {["citizen", "admin", "staff"].map((r) => (
+                  <button
+                    key={r} type="button"
+                    className={`reg-role-tab ${form.role === r ? "reg-role-active" : ""}`}
+                    onClick={() => setForm({ ...form, role: r })}
+                  >
+                    {r === "citizen" ? "🏘 Citizen" : r === "admin" ? "🛡 Admin" : "👷 Staff"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* TWO COLUMN ROW */}
+            <div className="reg-row">
+              <div className="reg-field">
+                <label>Full Name <span className="reg-req">*</span></label>
+                <div className="reg-input-wrap">
+                  <span className="reg-input-icon">👤</span>
+                  <input type="text" name="name" placeholder="Your full name"
+                    value={form.name} onChange={handleChange} required />
+                </div>
+              </div>
+              <div className="reg-field">
+                <label>Phone Number</label>
+                <div className="reg-input-wrap">
+                  <span className="reg-input-icon">📞</span>
+                  <input type="text" name="phone" placeholder="9800000000"
+                    value={form.phone} onChange={handleChange} />
+                </div>
+              </div>
+            </div>
+
+            {/* EMAIL */}
+            <div className="reg-field">
+              <label>Email Address <span className="reg-req">*</span></label>
+              <div className="reg-input-wrap">
+                <span className="reg-input-icon">✉</span>
+                <input type="email" name="email" placeholder="you@example.com"
+                  value={form.email} onChange={handleChange} required />
+              </div>
+            </div>
+
+            {/* ADDRESS */}
+            <div className="reg-field">
+              <label>Address</label>
+              <div className="reg-input-wrap">
+                <span className="reg-input-icon">📍</span>
+                <input type="text" name="address" placeholder="Your full address"
+                  value={form.address} onChange={handleChange} />
+              </div>
+            </div>
+
+            {/* PASSWORDS ROW */}
+            <div className="reg-row">
+              <div className="reg-field">
+                <label>Password <span className="reg-req">*</span></label>
+                <div className="reg-input-wrap">
+                  <span className="reg-input-icon">🔒</span>
+                  <input type={showPassword ? "text" : "password"} name="password"
+                    placeholder="Min 6 characters" value={form.password} onChange={handleChange} required />
+                  <button type="button" className="reg-eye" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? "👁" : "👁‍🗨"}
+                  </button>
+                </div>
+              </div>
+              <div className="reg-field">
+                <label>Confirm Password <span className="reg-req">*</span></label>
+                <div className="reg-input-wrap">
+                  <span className="reg-input-icon">🔒</span>
+                  <input type={showConfirm ? "text" : "password"} name="confirmPassword"
+                    placeholder="Re-enter password" value={form.confirmPassword} onChange={handleChange} required />
+                  <button type="button" className="reg-eye" onClick={() => setShowConfirm(!showConfirm)}>
+                    {showConfirm ? "👁" : "👁‍🗨"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SUBMIT */}
+            <button type="submit" className="reg-submit-btn" disabled={loading}>
+              {loading ? "Creating Account..." : "Create Account →"}
+            </button>
+
+          </form>
+
+          <div className="reg-login-link">
+            Already have an account? <Link to="/login">Sign in here</Link>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   );
 }
