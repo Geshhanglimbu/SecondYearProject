@@ -39,8 +39,8 @@ const db = mysql.createConnection({
   host: "localhost",
   port:     3307,  
   user: "root",
-  password: "1234",
-  database: "gms"
+  password: "@window09",
+  database: "garbage_management"
 });
 
 db.connect((err) => {

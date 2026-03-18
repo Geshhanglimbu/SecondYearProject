@@ -6,7 +6,7 @@ import NewRequest from "./pages/NewRequest.jsx";
 import Payment from "./pages/Payment";
 import PaymentSuccess, { PaymentFailed } from "./pages/PaymentSuccess";
 import Complaints from "./pages/Complaints";
-
+import StaffDashboard from "./pages/StaffDashboard.jsx";
 
 function App() {
   return (
@@ -20,7 +20,7 @@ function App() {
       <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/payment/failed"  element={<PaymentFailed />} />
       <Route path="/complaints" element={<Complaints />} />
-      
+      <Route path="/staff-dashboard"  element={<StaffDashboard />} />
     </Routes>
   );
 }
