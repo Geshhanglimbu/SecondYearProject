@@ -36,16 +36,38 @@ app.use("/uploads", express.static("uploads"));
 
 // MySQL database connection
 const db = mysql.createConnection({
-  host: "localhost",
-  port:     3307,  
+  host: "127.0.0.1",
+  port: 3306,
   user: "root",
   password: "1234",
   database: "gms"
 });
-
 db.connect((err) => {
   if (err) throw err;
   console.log("MySQL Connected");
+});
+
+// Auto-create assignments table if missing
+const createAssignmentsTableSql = `
+  CREATE TABLE IF NOT EXISTS assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    task_type ENUM('request', 'complaint') NOT NULL,
+    task_id INT NOT NULL,
+    worker_id VARCHAR(50) NOT NULL,
+    worker_name VARCHAR(255) NOT NULL,
+    assigned_by INT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_task_assignment (task_type, task_id)
+  )
+`;
+
+db.query(createAssignmentsTableSql, (err) => {
+  if (err) {
+    console.error("Failed to ensure assignments table exists:", err);
+  } else {
+    console.log("assignments table ready");
+  }
 });
 
 // File upload settings (saves to /uploads folder)
@@ -490,13 +512,58 @@ app.post("/api/payments/mark-paid", (req, res) => {
 /* ══════════════════════════════════════════════
    TEST ROUTE
    ══════════════════════════════════════════════ */
+
 app.get("/test", (req, res) => {
   res.json({ message: "Backend is working!" });
 });
 
+/* ══════════════════════════════════════════════
+   ADMIN READ ROUTES
+   ══════════════════════════════════════════════ */
+app.get("/api/admin/complaints", (req, res) => {
+  const sql = "SELECT * FROM complaints ORDER BY created_at DESC";
 
-// Start server on port 5001
-app.listen(5001, () => console.log("Server running on port 5001"));
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Failed to fetch admin complaints:", err);
+      return res.status(500).json({ message: "Failed to fetch complaints" });
+    }
+    res.json(results);
+  });
+});
+
+app.get("/api/admin/requests", (req, res) => {
+  const sql = "SELECT * FROM requests ORDER BY created_at DESC";
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Failed to fetch admin requests:", err);
+      return res.status(500).json({ message: "Failed to fetch requests" });
+    }
+    res.json(results);
+  });
+});
+
+app.get("/api/admin/stats", (req, res) => {
+  const sql = `
+    SELECT
+      (SELECT COUNT(*) FROM users) AS totalUsers,
+      (SELECT COUNT(*) FROM requests) AS totalRequests,
+      (SELECT COUNT(*) FROM complaints) AS totalComplaints,
+      (SELECT COUNT(*) FROM payments) AS totalPayments
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Failed to fetch admin stats:", err);
+      return res.status(500).json({ message: "Failed to fetch stats" });
+    }
+
+    res.json(results[0]);
+  });
+});
+
+
 
 
 /* ══════════════════════════════════════════════════════════
@@ -561,10 +628,22 @@ app.delete("/api/complaints/:id", (req, res) => {
 app.put("/api/complaints/:id/status", (req, res) => {
   const id = req.params.id;
   const { status } = req.body;
-  const valid = ['pending', 'completed', 'resolved'];
-  if (!valid.includes(status)) return res.status(400).json({ message: "Invalid status" });
-  db.query("UPDATE complaints SET status = ? WHERE id = ?", [status, id], (err) => {
-    if (err) return res.status(500).json({ message: "Failed to update status" });
+  const valid = ["pending", "in_progress", "resolved", "rejected", "completed"];
+
+  if (!valid.includes(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
+
+  db.query("UPDATE complaints SET status = ? WHERE id = ?", [status, id], (err, result) => {
+    if (err) {
+      console.error("Failed to update complaint status:", err);
+      return res.status(500).json({ message: "Failed to update status" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
     res.json({ message: "Status updated successfully" });
   });
 });
@@ -600,3 +679,276 @@ app.delete("/api/requests/:id", (req, res) => {
     res.json({ message: "Request deleted successfully" });
   });
 });
+
+/* PUT update request status (for admin) */
+app.put("/api/requests/:id/status", (req, res) => {
+  const id = req.params.id;
+  const { status } = req.body;
+  const valid = ["pending", "approved", "in_progress", "completed", "rejected"];
+
+  if (!valid.includes(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
+
+  db.query("UPDATE requests SET status = ? WHERE id = ?", [status, id], (err, result) => {
+    if (err) {
+      console.error("Failed to update request status:", err);
+      return res.status(500).json({ message: "Failed to update request status" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    res.json({ message: "Request status updated successfully" });
+  });
+});
+
+/* ══════════════════════════════════════════════════════════
+   ASSIGNMENT ROUTES
+   These connect admin assignment to worker tasks
+   ══════════════════════════════════════════════════════════ */
+
+/* POST assign a worker to a request */
+app.post("/api/requests/:id/assign", (req, res) => {
+  const requestId = req.params.id;
+  const { workerId, workerName, assignedBy } = req.body;
+
+  if (!workerId || !workerName) {
+    return res.status(400).json({ message: "workerId and workerName are required" });
+  }
+
+  const checkSql = "SELECT id FROM requests WHERE id = ?";
+  db.query(checkSql, [requestId], (checkErr, checkResults) => {
+    if (checkErr) {
+      console.error("Failed to verify request before assignment:", checkErr);
+      return res.status(500).json({ message: "Failed to assign worker" });
+    }
+
+    if (checkResults.length === 0) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    const assignSql = `
+      INSERT INTO assignments (task_type, task_id, worker_id, worker_name, assigned_by)
+      VALUES ('request', ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        worker_id = VALUES(worker_id),
+        worker_name = VALUES(worker_name),
+        assigned_by = VALUES(assigned_by),
+        updated_at = CURRENT_TIMESTAMP
+    `;
+
+    db.query(assignSql, [requestId, workerId, workerName, assignedBy || null], (assignErr) => {
+      if (assignErr) {
+        console.error("Failed to assign request worker:", assignErr);
+        return res.status(500).json({ message: "Failed to assign worker" });
+      }
+
+      const updateStatusSql = `
+        UPDATE requests
+        SET status = CASE WHEN status = 'pending' THEN 'approved' ELSE status END
+        WHERE id = ?
+      `;
+
+      db.query(updateStatusSql, [requestId], (statusErr) => {
+        if (statusErr) {
+          console.error("Assigned worker but failed to adjust request status:", statusErr);
+        }
+
+        res.json({ message: "Worker assigned to request successfully" });
+      });
+    });
+  });
+});
+
+/* POST assign a worker to a complaint */
+app.post("/api/complaints/:id/assign", (req, res) => {
+  const complaintId = req.params.id;
+  const { workerId, workerName, assignedBy } = req.body;
+
+  if (!workerId || !workerName) {
+    return res.status(400).json({ message: "workerId and workerName are required" });
+  }
+
+  const checkSql = "SELECT id FROM complaints WHERE id = ?";
+  db.query(checkSql, [complaintId], (checkErr, checkResults) => {
+    if (checkErr) {
+      console.error("Failed to verify complaint before assignment:", checkErr);
+      return res.status(500).json({ message: "Failed to assign worker" });
+    }
+
+    if (checkResults.length === 0) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    const assignSql = `
+      INSERT INTO assignments (task_type, task_id, worker_id, worker_name, assigned_by)
+      VALUES ('complaint', ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        worker_id = VALUES(worker_id),
+        worker_name = VALUES(worker_name),
+        assigned_by = VALUES(assigned_by),
+        updated_at = CURRENT_TIMESTAMP
+    `;
+
+    db.query(assignSql, [complaintId, workerId, workerName, assignedBy || null], (assignErr) => {
+      if (assignErr) {
+        console.error("Failed to assign complaint worker:", assignErr);
+        return res.status(500).json({ message: "Failed to assign worker" });
+      }
+
+      const updateStatusSql = `
+        UPDATE complaints
+        SET status = CASE WHEN status = 'pending' THEN 'in_progress' ELSE status END
+        WHERE id = ?
+      `;
+
+      db.query(updateStatusSql, [complaintId], (statusErr) => {
+        if (statusErr) {
+          console.error("Assigned worker but failed to adjust complaint status:", statusErr);
+        }
+
+        res.json({ message: "Worker assigned to complaint successfully" });
+      });
+    });
+  });
+});
+
+/* GET all assigned tasks for one worker */
+app.get("/api/worker/tasks/:workerId", (req, res) => {
+  const workerId = req.params.workerId;
+
+  const sql = `
+    SELECT
+      a.id AS assignment_id,
+      a.task_type,
+      a.task_id,
+      a.worker_id,
+      a.worker_name,
+      a.assigned_at,
+      r.id AS request_id,
+      r.user_id AS request_user_id,
+      r.type AS request_type,
+      r.description AS request_description,
+      r.pickup_date,
+      r.pickup_time,
+      r.image AS request_image,
+      r.location AS request_location,
+      r.status AS request_status,
+      c.id AS complaint_id,
+      c.user_id AS complaint_user_id,
+      c.title AS complaint_title,
+      c.description AS complaint_description,
+      c.location AS complaint_location,
+      c.status AS complaint_status,
+      c.created_at AS complaint_created_at
+    FROM assignments a
+    LEFT JOIN requests r
+      ON a.task_type = 'request' AND a.task_id = r.id
+    LEFT JOIN complaints c
+      ON a.task_type = 'complaint' AND a.task_id = c.id
+    WHERE a.worker_id = ?
+    ORDER BY a.assigned_at DESC
+  `;
+
+  db.query(sql, [workerId], (err, results) => {
+    if (err) {
+      console.error("Failed to fetch worker tasks:", err);
+      return res.status(500).json({ message: "Failed to fetch worker tasks" });
+    }
+
+    const mapped = results.map((row) => {
+      if (row.task_type === 'request') {
+        return {
+          assignmentId: row.assignment_id,
+          taskType: 'request',
+          taskId: row.request_id,
+          workerId: row.worker_id,
+          workerName: row.worker_name,
+          assignedAt: row.assigned_at,
+          userId: row.request_user_id,
+          title: row.request_type || `Request #${row.request_id}`,
+          description: row.request_description,
+          location: row.request_location,
+          status: row.request_status,
+          pickupDate: row.pickup_date,
+          pickupTime: row.pickup_time,
+          image: row.request_image,
+        };
+      }
+
+      return {
+        assignmentId: row.assignment_id,
+        taskType: 'complaint',
+        taskId: row.complaint_id,
+        workerId: row.worker_id,
+        workerName: row.worker_name,
+        assignedAt: row.assigned_at,
+        userId: row.complaint_user_id,
+        title: row.complaint_title || `Complaint #${row.complaint_id}`,
+        description: row.complaint_description,
+        location: row.complaint_location,
+        status: row.complaint_status,
+        createdAt: row.complaint_created_at,
+      };
+    });
+
+    res.json(mapped);
+  });
+});
+
+/* GET one worker's request assignments only */
+app.get("/api/worker/requests/:workerId", (req, res) => {
+  const workerId = req.params.workerId;
+
+  const sql = `
+    SELECT
+      a.id AS assignment_id,
+      a.worker_id,
+      a.worker_name,
+      a.assigned_at,
+      r.*
+    FROM assignments a
+    INNER JOIN requests r ON a.task_type = 'request' AND a.task_id = r.id
+    WHERE a.worker_id = ?
+    ORDER BY a.assigned_at DESC
+  `;
+
+  db.query(sql, [workerId], (err, results) => {
+    if (err) {
+      console.error("Failed to fetch worker request assignments:", err);
+      return res.status(500).json({ message: "Failed to fetch worker request assignments" });
+    }
+    res.json(results);
+  });
+});
+
+/* GET one worker's complaint assignments only */
+app.get("/api/worker/complaints/:workerId", (req, res) => {
+  const workerId = req.params.workerId;
+
+  const sql = `
+    SELECT
+      a.id AS assignment_id,
+      a.worker_id,
+      a.worker_name,
+      a.assigned_at,
+      c.*
+    FROM assignments a
+    INNER JOIN complaints c ON a.task_type = 'complaint' AND a.task_id = c.id
+    WHERE a.worker_id = ?
+    ORDER BY a.assigned_at DESC
+  `;
+
+  db.query(sql, [workerId], (err, results) => {
+    if (err) {
+      console.error("Failed to fetch worker complaint assignments:", err);
+      return res.status(500).json({ message: "Failed to fetch worker complaint assignments" });
+    }
+    res.json(results);
+  });
+});
+
+// Start server on port 5001
+app.listen(5001, () => console.log("Server running on port 5001"));
