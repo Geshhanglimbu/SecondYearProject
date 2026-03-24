@@ -30,6 +30,7 @@ const Payment = () => {
   const BILL_TOTAL = parseFloat(currentPayment?.amount || BASE_FEE + TAX_AMOUNT);
   const FINES_TOTAL = parseFloat(fineSummary.total_unpaid || 0);
   const GRAND_TOTAL = includeFines ? BILL_TOTAL + FINES_TOTAL : BILL_TOTAL;
+  const isAlreadyPaid = payments.some(p => p.status === "paid");
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -50,8 +51,8 @@ const Payment = () => {
       const data = await res.json();
       const safe = Array.isArray(data) ? data : [];
       setPayments(safe);
-      const pending = safe.find(p => p.status === "pending" || p.status === "overdue");
-      setCurrentPayment(pending || null);
+      const unpaid = safe.find(p => p.status !== "paid");
+      setCurrentPayment(unpaid || null);
     } catch (err) { console.error(err); }
   };
 
@@ -138,7 +139,12 @@ const Payment = () => {
   };
 
   /* ── Finalize ── */
+ 
   const handleFinalize = async () => {
+      if (payments.some(p => p.status === "paid") && !currentPayment) {
+    alert("This bill is already paid.");
+    return;
+  }
     if (!agreed) { alert("Please agree to the terms first."); return; }
     if (GRAND_TOTAL <= 0) { alert("Nothing to pay."); return; }
     setProcessing(true);
@@ -303,6 +309,18 @@ const Payment = () => {
                 {step === 1 && (
                   <div className="pay-card pay-animate">
                     <h3 className="pay-card-title">📄 Review Your Bill</h3>
+                    {isAlreadyPaid && (
+                      <div style={{
+                        background: "#d1fae5",
+                        border: "1px solid #34d399",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        marginBottom: "10px",
+                        color: "#065f46"
+                      }}>
+                        ✅ This bill is already paid. No further payment required.
+                      </div>
+                    )}
                     <p className="pay-card-sub">Billed to: {user?.address || "Your registered address"}</p>
                     <div className="pay-amount-hero">
                       <div className="pay-amount-label">MONTHLY BILL</div>
@@ -361,9 +379,11 @@ const Payment = () => {
                       <span className="pay-security-icon">🔒</span>
                       <div><div className="pay-security-title">PCI-DSS Compliant Gateway</div><div className="pay-security-desc">Your transaction details are encrypted. EcoConnect never stores your financial credentials.</div></div>
                     </div>
-                    <button className="pay-next-btn" onClick={() => setStep(2)}>
-                      Continue to Payment Gateway →
-                    </button>
+                    {!isAlreadyPaid && (
+                  <button className="pay-next-btn" onClick={() => setStep(2)}>
+                    Continue to Payment Gateway →
+                  </button>
+                )}
                   </div>
                 )}
 
@@ -443,7 +463,7 @@ const Payment = () => {
                       <input type="checkbox" id="agree" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
                       <label htmlFor="agree">I confirm the billing information is accurate and authorize this payment of <strong>Rs. {GRAND_TOTAL.toLocaleString()}</strong>. View <a href="#">Service Policy</a>.</label>
                     </div>
-                    <button className="pay-finalize-btn" onClick={handleFinalize} disabled={!agreed || processing}>
+                    <button className="pay-finalize-btn" onClick={handleFinalize} disabled={!agreed || processing || isAlreadyPaid}>
                       {processing ? "Processing..." : `Pay Rs. ${GRAND_TOTAL.toLocaleString()} via ${selectedGateway === "esewa" ? "eSewa" : selectedGateway === "khalti" ? "Khalti" : "QR"} →`}
                     </button>
                     <div className="pay-trust">
