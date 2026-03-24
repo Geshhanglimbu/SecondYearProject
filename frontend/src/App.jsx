@@ -7,24 +7,23 @@ import Payment from "./pages/Payment";
 import PaymentSuccess, { PaymentFailed } from "./pages/PaymentSuccess";
 import Complaints from "./pages/Complaints";
 import StaffDashboard from "./pages/StaffDashboard.jsx";
-import AdminDashboard from "./pages/AdminDashboard.jsx";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/dashboard" element={<CitizenDashboard />} />
-      <Route path="/new-request" element={<NewRequest />} />
-      <Route path="/payment"        element={<Payment />} />
+      <Route path="/"                element={<Login />} />
+      <Route path="/login"           element={<Login />} />
+      <Route path="/register"        element={<Register />} />
+      <Route path="/dashboard"       element={<CitizenDashboard />} />
+      <Route path="/new-request"     element={<NewRequest />} />
+      <Route path="/payment"         element={<Payment />} />
       <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/payment/failed"  element={<PaymentFailed />} />
-      <Route path="/complaints" element={<Complaints />} />
-      <Route path="/staff-dashboard"  element={<StaffDashboard />} />
+      <Route path="/complaints"      element={<Complaints />} />
+      <Route path="/staff-dashboard" element={<StaffDashboard />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
     </Routes>
-
   );
 }
 

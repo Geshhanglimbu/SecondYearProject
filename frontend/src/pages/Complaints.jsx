@@ -4,17 +4,17 @@ import "./Complaints.css";
 
 export default function Complaints() {
   const navigate = useNavigate();
-  const [user, setUser]               = useState(null);
-  const [complaints, setComplaints]   = useState([]);
-  const [filtered, setFiltered]       = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [search, setSearch]           = useState("");
+  const [user, setUser]                 = useState(null);
+  const [complaints, setComplaints]     = useState([]);
+  const [filtered, setFiltered]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy]           = useState("date");
-  const [activeMenu, setActiveMenu]   = useState("complaints");
-  const [showModal, setShowModal]     = useState(false);
+  const [sortBy, setSortBy]             = useState("date");
+  const [activeMenu, setActiveMenu]     = useState("complaints");
+  const [showModal, setShowModal]       = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [successMsg, setSuccessMsg]   = useState("");
+  const [successMsg, setSuccessMsg]     = useState("");
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -61,9 +61,7 @@ export default function Complaints() {
 
   const handleDelete = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5001/api/requests/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      console.log("Delete response:", data);
+      await fetch(`http://localhost:5001/api/requests/${id}`, { method: "DELETE" });
       setComplaints(prev => prev.filter(c => c.id !== id));
       setShowModal(false);
       setDeleteTarget(null);
@@ -78,9 +76,7 @@ export default function Complaints() {
   const handleDeleteAll = async () => {
     if (!user) return;
     try {
-      const res = await fetch(`http://localhost:5001/api/requests/all/${user.id}`, { method: "DELETE" });
-      const data = await res.json();
-      console.log("Delete all response:", data);
+      await fetch(`http://localhost:5001/api/requests/all/${user.id}`, { method: "DELETE" });
       setComplaints([]);
       setShowModal(false);
       setSuccessMsg("All requests deleted!");
@@ -102,8 +98,10 @@ export default function Complaints() {
     const s = (status || "pending").toLowerCase();
     if (s === "pending")   return "status-pending";
     if (s === "completed") return "status-completed";
+    if (s === "accepted")  return "status-accepted";
     if (s === "resolved")  return "status-resolved";
     if (s === "rejected")  return "status-rejected";
+    if (s === "declined")  return "status-rejected";
     return "status-pending";
   };
 
@@ -129,6 +127,7 @@ export default function Complaints() {
   return (
     <div className="complaints-layout">
 
+      {/* NAVBAR */}
       <nav className="complaints-navbar">
         <div className="nav-brand">
           <div className="nav-logo">
@@ -151,13 +150,14 @@ export default function Complaints() {
 
       <div className="complaints-body">
 
+        {/* SIDEBAR */}
         <aside className="complaints-sidebar">
           <nav className="sidebar-nav">
             {[
-              { key: "dashboard",  icon: "⊞", label: "Dashboard",  path: "/dashboard"   },
+              { key: "dashboard",  icon: "⊞", label: "Dashboard",   path: "/dashboard"   },
               { key: "newrequest", icon: "+",  label: "New Request", path: "/new-request" },
-              { key: "complaints", icon: "⚑",  label: "Complaints", path: "/complaints"  },
-              { key: "payments",   icon: "₨",  label: "Payments",   path: "/payment"     },
+              { key: "complaints", icon: "⚑",  label: "Complaints",  path: "/complaints"  },
+              { key: "payments",   icon: "₨",  label: "Payments",    path: "/payment"     },
             ].map(item => (
               <button
                 key={item.key}
@@ -178,6 +178,7 @@ export default function Complaints() {
           </div>
         </aside>
 
+        {/* MAIN */}
         <main className="complaints-main">
 
           {successMsg && <div className="success-toast">✅ {successMsg}</div>}
@@ -205,6 +206,7 @@ export default function Complaints() {
             </div>
           </div>
 
+          {/* Search */}
           <div className="search-bar-wrap">
             <span className="search-icon">🔍</span>
             <input
@@ -217,10 +219,11 @@ export default function Complaints() {
             {search && <button className="search-clear" onClick={() => setSearch("")}>✕</button>}
           </div>
 
+          {/* Filters */}
           <div className="filters-row">
             <div className="filter-group">
               <span className="filter-label">Filter by Status:</span>
-              {["all", "pending", "completed"].map(s => (
+              {["all", "pending", "accepted", "completed"].map(s => (
                 <button
                   key={s}
                   className={`filter-btn ${statusFilter === s ? "filter-active" : ""}`}
@@ -248,6 +251,7 @@ export default function Complaints() {
             </div>
           </div>
 
+          {/* Complaints List */}
           <div className="complaints-list">
             {filtered.length === 0 ? (
               <div className="empty-state">
@@ -267,6 +271,7 @@ export default function Complaints() {
                       <span className="complaint-icon">{getTypeIcon(c.type)}</span>
                     </div>
                   </div>
+
                   <div className="complaint-card-body">
                     <h3 className="complaint-title">{c.type || "General Request"}</h3>
                     <p className="complaint-desc">{c.description || "No description provided."}</p>
@@ -284,12 +289,25 @@ export default function Complaints() {
                       <span className="complaint-date">
                         <span className="meta-icon">🕐</span> {formatDate(c.created_at)}
                       </span>
+                      {/* ✅ Show staff name if completed */}
+                      {c.completed_by && (
+                        <span className="complaint-date">
+                          <span className="meta-icon">👷</span> Completed by <strong>{c.completed_by}</strong>
+                        </span>
+                      )}
                     </div>
                   </div>
+
                   <div className="complaint-card-right">
                     <span className={`status-badge ${getStatusClass(c.status)}`}>
                       {c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : "Pending"}
                     </span>
+                    {/* ✅ Completed by chip */}
+                    {c.completed_by && (
+                      <span className="completed-by-chip">
+                        👷 {c.completed_by}
+                      </span>
+                    )}
                     <button
                       className="delete-btn"
                       onClick={() => { setDeleteTarget(c.id); setShowModal(true); }}
@@ -306,6 +324,7 @@ export default function Complaints() {
         </main>
       </div>
 
+      {/* FOOTER */}
       <footer className="complaints-footer">
         <div className="footer-inner">
           <div className="footer-brand">
