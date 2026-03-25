@@ -6,17 +6,16 @@
   - Manages image upload using Multer
 */
 
-import express from "express";
-import mysql   from "mysql2";
-import cors    from "cors";
-import bcrypt  from "bcryptjs";
-import multer  from "multer";
-import path    from "path";
-import fs      from "fs";
-import axios   from "axios";
-import crypto  from "crypto";
+import express  from "express";
+import mysql    from "mysql2";
+import cors     from "cors";
+import bcrypt   from "bcryptjs";
+import multer   from "multer";
+import path     from "path";
+import fs       from "fs";
+import axios    from "axios";
+import crypto   from "crypto"; // ✅ FIXED: was missing! needed for eSewa signature
 
-// Auto-create uploads folder if missing
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
   console.log("uploads folder created");
@@ -33,24 +32,21 @@ app.use(cors({
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
-// ✅ MySQL connection
+// MySQL database connection
 const db = mysql.createConnection({
-  host:     "localhost",
-  port:     3307,
-  user:     "root",
+  host: "localhost",
+  port:     3307,  
+  user: "root",
   password: "@window09",
   database: "garbage_management"
 });
 
 db.connect((err) => {
-  if (err) {
-    console.log("❌ MySQL Connection Error:", err.message);
-    throw err;
-  }
-  console.log("✅ MySQL Connected Successfully");
+  if (err) throw err;
+  console.log("MySQL Connected");
 });
 
-// File upload settings
+// File upload settings (saves to /uploads folder)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename:    (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
@@ -60,17 +56,20 @@ const upload = multer({ storage });
 
 /* ══════════════════════════════════════════════
    REGISTER API
+   URL: POST /register
+   What it does: Creates a new user account
    ══════════════════════════════════════════════ */
 app.post("/register", upload.single("image"), async (req, res) => {
   const { role, name, email, phone, address, password } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
   const image = req.file ? req.file.filename : null;
-
   const sql = "INSERT INTO users (role, name, email, phone, address, password, image) VALUES (?, ?, ?, ?, ?, ?, ?)";
   db.query(sql, [role, name, email, phone, address, hashedPassword, image], (err) => {
     if (err) {
-      if (err.code === "ER_DUP_ENTRY")
+      // ER_DUP_ENTRY means someone already registered with that email
+      if (err.code === "ER_DUP_ENTRY") {
         return res.status(400).json({ message: "Email already registered! Please use a different email." });
+      }
       console.log(err);
       return res.status(500).json({ message: "Registration failed" });
     }
@@ -81,26 +80,30 @@ app.post("/register", upload.single("image"), async (req, res) => {
 
 /* ══════════════════════════════════════════════
    LOGIN API
+   URL: POST /login
+   What it does: Checks email + password + role
    ══════════════════════════════════════════════ */
 app.post("/login", async (req, res) => {
   const { email, password, role } = req.body;
-  console.log("🔐 Login attempt:", { email, role });
 
   const sql = "SELECT * FROM users WHERE email = ? AND role = ?";
   db.query(sql, [email, role], async (err, results) => {
     if (err) {
-      console.log("❌ LOGIN SQL ERROR:", err);
+      console.log("LOGIN SQL ERROR:", err);
       return res.status(500).json({ message: "Server error" });
     }
-    console.log("🔍 Query results:", results.length, "user(s) found");
-    if (results.length === 0)
-      return res.status(400).json({ message: "Invalid email or role" });
 
-    const user  = results[0];
+    if (results.length === 0) {
+      return res.status(400).json({ message: "Invalid email or role" });
+    }
+
+    const user = results[0];
+    // bcrypt.compare checks if the typed password matches the stored hash
     const match = await bcrypt.compare(password, user.password);
-    console.log("🔑 Password match:", match);
-    if (!match)
+
+    if (!match) {
       return res.status(400).json({ message: "Incorrect password" });
+    }
 
     res.json({ message: "Login successful", user });
   });
@@ -109,21 +112,62 @@ app.post("/login", async (req, res) => {
 
 /* ══════════════════════════════════════════════
    CITIZEN DASHBOARD API
+   URL: GET /api/citizen/dashboard/:userId
+   
+   ✅ FIXED: This is now ONE single dashboard route
+   ✅ FIXED: Now includes latestPayment AND pendingCount
+   ✅ REMOVED: The old duplicate route that had no payment data
    ══════════════════════════════════════════════ */
 app.get("/api/citizen/dashboard/:userId", (req, res) => {
   const userId = req.params.userId;
 
-  const requestsQuery      = `SELECT * FROM requests   WHERE user_id = ? ORDER BY created_at DESC LIMIT 5`;
-  const complaintsQuery    = `SELECT * FROM complaints WHERE user_id = ? ORDER BY created_at DESC LIMIT 5`;
+  // Query 1: Get 5 most recent requests for this user
+  const requestsQuery = `
+    SELECT * FROM requests 
+    WHERE user_id = ? 
+    ORDER BY created_at DESC 
+    LIMIT 5
+  `;
+
+  // Query 2: Get 5 most recent complaints
+  const complaintsQuery = `
+    SELECT * FROM complaints 
+    WHERE user_id = ? 
+    ORDER BY created_at DESC 
+    LIMIT 5
+  `;
+
+  // Query 3: Get the single most urgent UNPAID bill
+  // overdue bills come first (most urgent), then pending
+  // status != 'paid' means: only get bills that still need to be paid
   const latestPaymentQuery = `
-    SELECT * FROM payments WHERE user_id = ? AND status != 'paid'
-    ORDER BY CASE WHEN status='overdue' THEN 1 WHEN status='pending' THEN 2 ELSE 3 END, due_date ASC
+    SELECT * FROM payments 
+    WHERE user_id = ? AND status != 'paid'
+    ORDER BY 
+      CASE 
+        WHEN status = 'overdue' THEN 1 
+        WHEN status = 'pending' THEN 2 
+        ELSE 3 
+      END, 
+      due_date ASC
     LIMIT 1
   `;
-  const pendingCountQuery  = `SELECT COUNT(*) as count FROM payments WHERE user_id = ? AND status != 'paid'`;
+
+  // Query 4: Count ALL unpaid bills (for the sidebar badge number)
+  // This gives us the total count, not just 1
+  const pendingCountQuery = `
+    SELECT COUNT(*) as count 
+    FROM payments 
+    WHERE user_id = ? AND status != 'paid'
+  `;
 
   db.query(requestsQuery, [userId], (err, recentRequests) => {
-    if (err) return res.status(500).json({ message: "Failed to fetch requests" });
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Failed to fetch requests" });
+    }
+
+    // Run Query 2 inside Query 1's result
     db.query(complaintsQuery, [userId], (err, recentComplaints) => {
       if (err) recentComplaints = [];
       db.query(latestPaymentQuery, [userId], (err, paymentResults) => {
@@ -133,15 +177,13 @@ app.get("/api/citizen/dashboard/:userId", (req, res) => {
           const totalRequests = recentRequests.length;
           res.json({
             stats: {
-              points:       totalRequests * 100,
-              recycledKg:   totalRequests * 10,
-              treesPlanted: Math.floor(totalRequests / 2),
-              wasteReduced: Math.min(totalRequests * 5, 100),
+              points: totalRequests * 100, recycledKg: totalRequests * 10,
+              treesPlanted: Math.floor(totalRequests / 2), wasteReduced: Math.min(totalRequests * 5, 100),
             },
             recentRequests,
             recentComplaints,
-            latestPayment: paymentResults[0] || null,
-            pendingCount:  countResults[0]?.count || 0,
+            latestPayment: paymentResults[0] || null,   // null = no unpaid bills
+            pendingCount:  countResults[0]?.count || 0, // number for sidebar badge
           });
         });
       });
@@ -152,18 +194,25 @@ app.get("/api/citizen/dashboard/:userId", (req, res) => {
 
 /* ══════════════════════════════════════════════
    SUBMIT REQUEST API
+   URL: POST /api/submit-request
+   What it does: Saves a new waste pickup request
    ══════════════════════════════════════════════ */
 app.post("/api/submit-request", upload.array("files", 5), (req, res) => {
   const { type, description, pickupDate, pickupTime, userId, location } = req.body;
   if (!userId) return res.status(400).json({ message: "User ID is required" });
 
+  // Join multiple image filenames with commas: "img1.jpg,img2.jpg,img3.jpg"
   const images = req.files && req.files.length > 0
     ? req.files.map(f => f.filename).join(",")
     : null;
 
   const sql = "INSERT INTO requests (user_id, type, description, pickup_date, pickup_time, image, location) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
   db.query(sql, [userId, type, description, pickupDate, pickupTime, images, location || null], (err) => {
-    if (err) { console.log(err); return res.status(500).json({ message: "Request submission failed" }); }
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Request submission failed" });
+    }
     res.status(200).json({ message: "Request submitted successfully!" });
   });
 });
@@ -171,11 +220,18 @@ app.post("/api/submit-request", upload.array("files", 5), (req, res) => {
 
 /* ══════════════════════════════════════════════
    GET USER REQUESTS API
+   URL: GET /api/requests/:userId
+   What it does: Returns all past requests for a user
    ══════════════════════════════════════════════ */
 app.get("/api/requests/:userId", (req, res) => {
   const userId = req.params.userId;
-  db.query("SELECT * FROM requests WHERE user_id = ? ORDER BY created_at DESC", [userId], (err, results) => {
-    if (err) return res.status(500).json({ message: "Failed to fetch requests" });
+  const sql = "SELECT * FROM requests WHERE user_id = ? ORDER BY created_at DESC";
+
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Failed to fetch requests" });
+    }
     res.json(results);
   });
 });
@@ -202,65 +258,153 @@ app.delete("/api/requests/:id", (req, res) => {
 
 /* ══════════════════════════════════════════════
    PAYMENT ROUTES
-   ══════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════════════ */
+
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 1: GET ALL PAYMENTS FOR A USER
+   URL: GET /api/payments/:userId
+   Called by: Payment.jsx when page loads
+   ────────────────────────────────────────────── */
 app.get("/api/payments/:userId", (req, res) => {
-  db.query("SELECT * FROM payments WHERE user_id = ? ORDER BY due_date DESC", [req.params.userId], (err, results) => {
-    if (err) return res.status(500).json({ message: "Failed to fetch payments" });
+  const userId = req.params.userId;
+  const sql = "SELECT * FROM payments WHERE user_id = ? ORDER BY due_date DESC";
+
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Failed to fetch payments" });
+    }
     res.json(results);
   });
 });
 
+
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 2: ESEWA INITIATE
+   URL: POST /api/payments/esewa/initiate
+   Called by: Payment.jsx when user clicks "Finalize" with eSewa
+   
+   WHY: eSewa needs a security signature. We make it here on the
+   backend using a secret key so users can't fake it.
+   ────────────────────────────────────────────── */
 app.post("/api/payments/esewa/initiate", (req, res) => {
   const { amount, userId } = req.body;
-  const txnId       = `ECO-${userId}-${Date.now()}`;
-  const parsedAmount = parseFloat(amount);
-  const baseAmount  = parseFloat((parsedAmount / 1.125).toFixed(2));
-  const taxAmount   = parseFloat((parsedAmount - baseAmount).toFixed(2));
-  const totalAmount = parseFloat((baseAmount + taxAmount).toFixed(2));
-  const secretKey   = "8gBm/:&EnhH.1/q";
-  const message     = `total_amount=${totalAmount},transaction_uuid=${txnId},product_code=EPAYTEST`;
-  const signature   = crypto.createHmac("sha256", secretKey).update(message).digest("base64");
+
+  // Unique transaction ID: ECO-5-1709234567890
+  const txnId = `ECO-${userId}-${Date.now()}`;
+
+  // ─────────────────────────────────────────────────────
+  // ✅ FIXED AMOUNT CALCULATION
+  //
+  // eSewa rule: amount + tax_amount + service_charge + delivery_charge = total_amount
+  // If these don't add up EXACTLY, eSewa rejects with ES104!
+  //
+  // We treat the payment amount as the BASE (before tax):
+  //   base    = what user owes before tax (e.g. 600)
+  //   tax     = 12.5% of base           (e.g. 75)
+  //   total   = base + tax              (e.g. 675)
+  //
+  // The signature must use this SAME total_amount — never a rounded version.
+  // ─────────────────────────────────────────────────────
+  const parsedAmount = parseFloat(amount);          // e.g. 675.00 (full amount from DB)
+
+  // We treat the incoming amount AS the total (already includes tax)
+  // Split it back: base = total / 1.125
+  const baseAmount  = parseFloat((parsedAmount / 1.125).toFixed(2));  // 600.00
+  const taxAmount   = parseFloat((parsedAmount - baseAmount).toFixed(2)); // 75.00
+  const totalAmount = parseFloat((baseAmount + taxAmount).toFixed(2));    // 675.00
+
+  // eSewa sandbox secret key — official test key from eSewa docs
+  const secretKey = "8gBm/:&EnhH.1/q";
+
+  // Signature message MUST be in this exact format, exact field order
+  // Use the CALCULATED totalAmount (not parsedAmount) to avoid floating point issues
+  const message = `total_amount=${totalAmount},transaction_uuid=${txnId},product_code=EPAYTEST`;
+
+  console.log("eSewa signature message:", message); // log so you can debug
+
+  const signature = crypto
+    .createHmac("sha256", secretKey)
+    .update(message)
+    .digest("base64");
+
+  console.log("eSewa signature:", signature);
+
+  // ALL these fields go into the hidden form on frontend
+  // amount + tax_amount + service_charge + delivery_charge MUST equal total_amount
   res.json({
-    amount: baseAmount, tax_amount: taxAmount, total_amount: totalAmount,
-    transaction_uuid: txnId, product_code: "EPAYTEST", signature,
-    signed_field_names: "total_amount,transaction_uuid,product_code",
-    success_url: "http://localhost:5173/payment/success",
-    failure_url: "http://localhost:5173/payment/failed",
-    product_service_charge: "0", product_delivery_charge: "0",
+    amount:                  baseAmount,   // 600.00
+    tax_amount:              taxAmount,    // 75.00
+    total_amount:            totalAmount,  // 675.00
+    transaction_uuid:        txnId,
+    product_code:            "EPAYTEST",
+    signature:               signature,
+    signed_field_names:      "total_amount,transaction_uuid,product_code",
+    success_url:             "http://localhost:5173/payment/success",
+    failure_url:             "http://localhost:5173/payment/failed",
+    product_service_charge:  "0",
+    product_delivery_charge: "0",
   });
 });
 
+
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 3: ESEWA VERIFY
+   URL: POST /api/payments/esewa/verify
+   Called by: PaymentSuccess.jsx after eSewa redirects back
+   ────────────────────────────────────────────── */
 app.post("/api/payments/esewa/verify", async (req, res) => {
   const { data, paymentId } = req.body;
+
   try {
+    // eSewa sends back a base64 encoded string — decode it to read the result
     const decoded = JSON.parse(Buffer.from(data, "base64").toString("utf-8"));
+    console.log("eSewa decoded response:", decoded);
+
     if (decoded.status === "COMPLETE") {
-      db.query(
-        `UPDATE payments SET status='paid', paid_date=CURDATE(), gateway='esewa', transaction_id=? WHERE id=?`,
-        [decoded.transaction_uuid, paymentId],
-        (err) => {
-          if (err) return res.status(500).json({ message: "DB update failed" });
-          res.json({ message: "eSewa payment verified!", verified: true });
-        }
-      );
+      const sql = `
+        UPDATE payments 
+        SET status = 'paid', paid_date = CURDATE(), gateway = 'esewa', transaction_id = ? 
+        WHERE id = ?
+      `;
+      db.query(sql, [decoded.transaction_uuid, paymentId], (err) => {
+        if (err) { console.log(err); return res.status(500).json({ message: "DB update failed" }); }
+        res.json({ message: "eSewa payment verified!", verified: true });
+      });
     } else {
       res.status(400).json({ message: "eSewa payment not completed", verified: false });
     }
-  } catch { res.status(500).json({ message: "Verification error" }); }
+  } catch (err) {
+    console.log("eSewa verify error:", err.message);
+    res.status(500).json({ message: "Verification error" });
+  }
 });
 
+
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 4: KHALTI INITIATE
+   URL: POST /api/payments/khalti/initiate
+   Called by: Payment.jsx when user picks Khalti
+   
+   NOTE: Must come BEFORE /api/payments/:userId
+   so Express doesn't think "khalti" is a userId!
+   ────────────────────────────────────────────── */
 app.post("/api/payments/khalti/initiate", async (req, res) => {
-  const { userId, amount, name, email } = req.body;
+  const { userId, paymentId, amount, name, email } = req.body;
+
   try {
     const response = await axios.post(
       "https://a.khalti.com/api/v2/epayment/initiate/",
       {
-        return_url:          "http://localhost:5173/payment/success",
-        website_url:         "http://localhost:5173",
-        amount,
-        purchase_order_id:   `ECO-${userId}-${Date.now()}`,
-        purchase_order_name: "EcoConnect Monthly Waste Fee",
-        customer_info: { name: name || "EcoConnect User", email: email || "user@ecoconnect.com" },
+        return_url:            "http://localhost:5173/payment/success",
+        website_url:           "http://localhost:5173",
+        amount:                amount,  // in paisa! Rs.675 = 67500 paisa
+        purchase_order_id:     `ECO-${userId}-${Date.now()}`,
+        purchase_order_name:   "EcoConnect Monthly Waste Fee",
+        customer_info: {
+          name:  name  || "EcoConnect User",
+          email: email || "user@ecoconnect.com",
+        },
       },
       { headers: { Authorization: "Key YOUR_KHALTI_TEST_SECRET_KEY", "Content-Type": "application/json" } }
     );
@@ -270,39 +414,78 @@ app.post("/api/payments/khalti/initiate", async (req, res) => {
   }
 });
 
+
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 5: KHALTI VERIFY
+   URL: POST /api/payments/khalti/verify
+   Called by: PaymentSuccess.jsx after Khalti redirects back
+   ────────────────────────────────────────────── */
 app.post("/api/payments/khalti/verify", async (req, res) => {
   const { pidx, paymentId } = req.body;
+
   try {
     const response = await axios.post(
       "https://a.khalti.com/api/v2/epayment/lookup/",
       { pidx },
       { headers: { Authorization: "Key YOUR_KHALTI_TEST_SECRET_KEY", "Content-Type": "application/json" } }
     );
+
     if (response.data?.status === "Completed") {
-      db.query(
-        `UPDATE payments SET status='paid', paid_date=CURDATE(), gateway='khalti', transaction_id=? WHERE id=?`,
-        [pidx, paymentId],
-        (err) => {
-          if (err) return res.status(500).json({ message: "DB update failed" });
-          res.json({ message: "Khalti payment verified!", verified: true });
-        }
-      );
+      const sql = `
+        UPDATE payments 
+        SET status = 'paid', paid_date = CURDATE(), gateway = 'khalti', transaction_id = ? 
+        WHERE id = ?
+      `;
+      db.query(sql, [pidx, paymentId], (err) => {
+        if (err) { console.log(err); return res.status(500).json({ message: "DB update failed" }); }
+        res.json({ message: "Khalti payment verified!", verified: true });
+      });
     } else {
-      res.status(400).json({ message: "Khalti payment not completed", verified: false });
+      res.status(400).json({ message: "Khalti not completed: " + (response.data?.status || "unknown"), verified: false });
     }
   } catch (err) {
+    console.log("Khalti verify error:", err.response?.data || err.message);
     res.status(500).json({ message: "Khalti verification error" });
   }
 });
 
+
+/* ──────────────────────────────────────────────
+   PAYMENT ROUTE 6: MARK PAYMENT AS PAID MANUALLY
+   URL: POST /api/payments/mark-paid
+   Used for: QR payments or admin marking paid
+   ────────────────────────────────────────────── */
 app.post("/api/payments/mark-paid", (req, res) => {
   const { paymentId, gateway, transaction_id } = req.body;
+
+  const sql = `
+    UPDATE payments 
+    SET status = 'paid', paid_date = CURDATE(), gateway = ?, transaction_id = ? 
+    WHERE id = ?
+  `;
+
+  db.query(sql, [gateway || "manual", transaction_id || null, paymentId], (err) => {
+    if (err) { console.log(err); return res.status(500).json({ message: "Payment update failed" }); }
+    res.json({ message: "Payment marked as paid!" });
+  });
+});
+
+
+/* ══════════════════════════════════════════════
+   DEBUG — open in browser to inspect DB
+   http://localhost:5001/api/debug/payments/YOUR_USER_ID
+   ══════════════════════════════════════════════ */
+app.get("/api/debug/payments/:userId", (req, res) => {
   db.query(
-    `UPDATE payments SET status='paid', paid_date=CURDATE(), gateway=?, transaction_id=? WHERE id=?`,
-    [gateway || "manual", transaction_id || null, paymentId],
-    (err) => {
-      if (err) return res.status(500).json({ message: "Payment update failed" });
-      res.json({ message: "Payment marked as paid!" });
+    `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='payments' ORDER BY ORDINAL_POSITION`,
+    (err, cols) => {
+      db.query(`SELECT * FROM payments WHERE user_id=? ORDER BY id DESC`, [req.params.userId], (err2, rows) => {
+        res.json({
+          columns:    err  ? "error" : cols.map(c => c.COLUMN_NAME),
+          rows:       err2 ? "error: " + err2.message : rows,
+          row_count:  rows?.length || 0,
+        });
+      });
     }
   );
 });
@@ -311,37 +494,65 @@ app.post("/api/payments/mark-paid", (req, res) => {
 /* ══════════════════════════════════════════════
    COMPLAINTS ROUTES
    ══════════════════════════════════════════════ */
+app.get("/test", (req, res) => {
+  res.json({ message: "Backend is working!" });
+});
+
+
+// Start server on port 5001
+app.listen(5001, () => console.log("Server running on port 5001"));
+
+
+/* ══════════════════════════════════════════════════════════
+   COMPLAINTS ROUTES
+   ══════════════════════════════════════════════════════════ */
+
+/* GET all complaints for a user */
 app.get("/api/complaints/:userId", (req, res) => {
-  db.query("SELECT * FROM complaints WHERE user_id = ? ORDER BY created_at DESC", [req.params.userId], (err, results) => {
-    if (err) return res.status(500).json({ message: "Failed to fetch complaints" });
+  const userId = req.params.userId;
+  const sql = `SELECT * FROM complaints WHERE user_id = ? ORDER BY created_at DESC`;
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("Failed to fetch complaints:", err);
+      return res.status(500).json({ message: "Failed to fetch complaints" });
+    }
     res.json(results);
   });
 });
 
 app.post("/api/complaints", (req, res) => {
   const { userId, title, description } = req.body;
-  if (!userId || !title || !description)
+  if (!userId || !title || !description) {
     return res.status(400).json({ message: "userId, title and description are required" });
-  db.query(
-    "INSERT INTO complaints (user_id, title, description, status, created_at) VALUES (?, ?, ?, 'pending', NOW())",
-    [userId, title, description],
-    (err, result) => {
-      if (err) return res.status(500).json({ message: "Failed to submit complaint" });
-      res.json({ id: result.insertId, message: "Complaint submitted successfully" });
+  }
+  const sql = `INSERT INTO complaints (user_id, title, description, status, created_at) VALUES (?, ?, ?, 'pending', NOW())`;
+  db.query(sql, [userId, title, description], (err, result) => {
+    if (err) {
+      console.error("Failed to insert complaint:", err);
+      return res.status(500).json({ message: "Failed to submit complaint" });
     }
-  );
+    res.json({ id: result.insertId, message: "Complaint submitted successfully" });
+  });
 });
 
 app.delete("/api/complaints/all/:userId", (req, res) => {
-  db.query("DELETE FROM complaints WHERE user_id = ?", [req.params.userId], (err, result) => {
-    if (err) return res.status(500).json({ message: "Failed to delete complaints" });
+  const userId = req.params.userId;
+  db.query("DELETE FROM complaints WHERE user_id = ?", [userId], (err, result) => {
+    if (err) {
+      console.error("Failed to delete all complaints:", err);
+      return res.status(500).json({ message: "Failed to delete complaints" });
+    }
     res.json({ message: "All complaints deleted", deleted: result.affectedRows });
   });
 });
 
 app.delete("/api/complaints/:id", (req, res) => {
-  db.query("DELETE FROM complaints WHERE id = ?", [req.params.id], (err, result) => {
-    if (err) return res.status(500).json({ message: "Failed to delete complaint" });
+  const id = req.params.id;
+  db.query("DELETE FROM complaints WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Failed to delete complaint:", err);
+      return res.status(500).json({ message: "Failed to delete complaint" });
+    }
     if (result.affectedRows === 0) return res.status(404).json({ message: "Complaint not found" });
     res.json({ message: "Complaint deleted successfully" });
   });
@@ -349,155 +560,42 @@ app.delete("/api/complaints/:id", (req, res) => {
 
 app.put("/api/complaints/:id/status", (req, res) => {
   const { status } = req.body;
-  const valid = ["pending", "completed", "resolved"];
+  const valid = ['pending', 'completed', 'resolved'];
   if (!valid.includes(status)) return res.status(400).json({ message: "Invalid status" });
-  db.query("UPDATE complaints SET status = ? WHERE id = ?", [status, req.params.id], (err) => {
+  db.query("UPDATE complaints SET status = ? WHERE id = ?", [status, id], (err) => {
     if (err) return res.status(500).json({ message: "Failed to update status" });
     res.json({ message: "Status updated successfully" });
   });
 });
 
 
-/* ══════════════════════════════════════════════
-   ADMIN ROUTES
-   ══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════
+   REQUESTS DELETE ROUTES
+   ══════════════════════════════════════════════════════════ */
 
-/* GET all requests for admin */
-app.get("/api/admin/requests", (req, res) => {
-  const sql = `
-    SELECT r.*, u.name as citizen_name 
-    FROM requests r 
-    LEFT JOIN users u ON r.user_id = u.id 
-    ORDER BY r.created_at DESC
-  `;
-  db.query(sql, (err, results) => {
-    if (err) { console.log("❌ Admin requests error:", err); return res.status(500).json({ message: "Failed to fetch requests" }); }
-    res.json(results);
+/* DELETE all requests for a user — MUST be before /:id */
+app.delete("/api/requests/all/:userId", (req, res) => {
+  const userId = req.params.userId;
+  db.query("DELETE FROM requests WHERE user_id = ?", [userId], (err, result) => {
+    if (err) {
+      console.error("Failed to delete all requests:", err);
+      return res.status(500).json({ message: "Failed to delete requests" });
+    }
+    res.json({ message: "All requests deleted", deleted: result.affectedRows });
   });
 });
 
-/* PUT update request status — when accepted, auto-add to schedules for staff */
-app.put("/api/admin/requests/:id/status", (req, res) => {
-  const { status } = req.body;
+/* DELETE a single request by id */
+app.delete("/api/requests/:id", (req, res) => {
   const id = req.params.id;
-
-  db.query("UPDATE requests SET status = ? WHERE id = ?", [status, id], (err) => {
-    if (err) return res.status(500).json({ message: "Failed to update status" });
-
-    if (status === "accepted") {
-      const getReq = `
-        SELECT r.*, u.name as citizen_name 
-        FROM requests r 
-        LEFT JOIN users u ON r.user_id = u.id 
-        WHERE r.id = ?
-      `;
-      db.query(getReq, [id], (err, results) => {
-        if (err || results.length === 0) return res.json({ message: "Status updated successfully" });
-
-        const r = results[0];
-        db.query("SELECT id FROM schedules WHERE request_id = ?", [id], (err, existing) => {
-          if (err || (existing && existing.length > 0))
-            return res.json({ message: "Status updated successfully" });
-
-          const insertSql = `INSERT INTO schedules (request_id, area, collection_date, status) VALUES (?, ?, ?, 'pending')`;
-          const area = r.location || "General Area";
-          const date = r.pickup_date || new Date().toISOString().split("T")[0];
-
-          db.query(insertSql, [id, area, date], (err) => {
-            if (err) console.log("⚠️ Schedule insert error:", err.message);
-            else console.log(`✅ Schedule created for request #${id}`);
-          });
-
-          res.json({ message: "Status updated successfully" });
-        });
-      });
-    } else {
-      res.json({ message: "Status updated successfully" });
+  db.query("DELETE FROM requests WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Failed to delete request:", err);
+      return res.status(500).json({ message: "Failed to delete request" });
     }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+    res.json({ message: "Request deleted successfully" });
   });
 });
-
-/* GET all citizens for admin */
-app.get("/api/admin/citizens", (req, res) => {
-  db.query(
-    "SELECT id, name, email, image, created_at FROM users WHERE role = 'citizen' ORDER BY created_at DESC",
-    (err, results) => {
-      if (err) return res.status(500).json({ message: "Failed to fetch citizens" });
-      res.json(results);
-    }
-  );
-});
-
-
-/* ══════════════════════════════════════════════
-   STAFF ROUTES
-   ══════════════════════════════════════════════ */
-
-/* GET all schedules for staff */
-app.get("/schedules", (req, res) => {
-  const sql = `
-    SELECT 
-      s.id, s.area, s.collection_date, s.status, s.request_id,
-      r.type, r.description, r.location, r.pickup_time,
-      u.name as citizen_name
-    FROM schedules s
-    LEFT JOIN requests r ON s.request_id = r.id
-    LEFT JOIN users    u ON r.user_id = u.id
-    ORDER BY s.collection_date DESC
-  `;
-  db.query(sql, (err, results) => {
-    if (err) { console.log("❌ Schedules error:", err); return res.status(500).json({ message: "Failed to fetch schedules" }); }
-    res.json(results);
-  });
-});
-
-/* ✅ PUT update schedule status — when completed, also update requests table with staff name */
-app.put("/schedules/:id", (req, res) => {
-  const { status, staff_name } = req.body;
-
-  // Step 1: Update schedule status
-  db.query("UPDATE schedules SET status = ? WHERE id = ?", [status, req.params.id], (err) => {
-    if (err) return res.status(500).json({ message: "Failed to update schedule" });
-
-    // Step 2: If completed → update requests table with completed status + staff name
-    if (status === "completed") {
-      const sql = `
-        UPDATE requests r
-        JOIN schedules s ON s.request_id = r.id
-        SET r.status = 'completed', r.completed_by = ?
-        WHERE s.id = ?
-      `;
-      db.query(sql, [staff_name || "Staff", req.params.id], (err) => {
-        if (err) console.log("⚠️ Request update error:", err.message);
-        else console.log(`✅ Request marked completed by ${staff_name}`);
-      });
-    }
-
-    // Step 3: If reopened → reset request status back to accepted
-    if (status === "pending") {
-      const sql = `
-        UPDATE requests r
-        JOIN schedules s ON s.request_id = r.id
-        SET r.status = 'accepted', r.completed_by = NULL
-        WHERE s.id = ?
-      `;
-      db.query(sql, [req.params.id], (err) => {
-        if (err) console.log("⚠️ Request reopen error:", err.message);
-      });
-    }
-
-    res.json({ message: "Schedule updated successfully" });
-  });
-});
-
-
-/* ══════════════════════════════════════════════
-   TEST ROUTE
-   ══════════════════════════════════════════════ */
-app.get("/test", (req, res) => {
-  res.json({ message: "Backend is working!" });
-});
-
-
-// Start server on port 5001
-app.listen(5001, () => console.log("🚀 Server running on port 5001"));

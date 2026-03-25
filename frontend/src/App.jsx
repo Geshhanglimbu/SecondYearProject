@@ -9,6 +9,7 @@ import Complaints from "./pages/Complaints";
 import StaffDashboard from "./pages/StaffDashboard.jsx";
 import AdminDashboard from "./pages/AdminDashboard";
 
+
 function App() {
   return (
     <Routes>
@@ -23,6 +24,8 @@ function App() {
       <Route path="/complaints"      element={<Complaints />} />
       <Route path="/staff-dashboard" element={<StaffDashboard />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
+     
+   
     </Routes>
   );
 }
