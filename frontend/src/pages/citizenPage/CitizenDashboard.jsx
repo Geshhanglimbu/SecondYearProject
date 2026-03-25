@@ -73,8 +73,10 @@ const CitizenDashboard = () => {
     { id: "dashboard",  icon: "▦",  label: "Dashboard",   path: null          },
     { id: "request",    icon: "+",  label: "New Request", path: "/new-request" },
     { id: "complaints", icon: "⚑",  label: "Complaints",  path: "/complaints"  },
-    { id: "payment",    icon: "₨",  label: "Payments",    path: "/payment",
+    { id: "payment",    icon: "💳",  label: "Payments",    path: "/payment",
       badge: pendingBills > 0 ? pendingBills : null },
+    { id: "feedback",   icon: "✦",  label: "Feedback",    path: "/feedback"     },
+    { id: "profile", icon: "◎", label: "Profile", path: "/profile" },
   ];
 
   return (
@@ -83,11 +85,7 @@ const CitizenDashboard = () => {
       {/* ══════════════ NAVBAR ══════════════ */}
       <nav className="db-navbar">
         <div className="db-nav-brand">
-          <div className="db-logo-mark">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
-            </svg>
-          </div>
+          <div className="db-logo-mark">♻</div>
           <span className="db-brand-name">EcoConnect</span>
         </div>
 
@@ -319,6 +317,24 @@ const CitizenDashboard = () => {
                     </svg>
                   </button>
                 </div>
+                {/* Feedback Card */}
+                  <div className="db-action-card db-card-feedback">
+                    <div className="db-card-icon-wrap">
+                      <span>✦</span>
+                    </div>
+                    <div className="db-card-body">
+                      <h3 className="db-card-title">Share Feedback</h3>
+                      <p className="db-card-desc">
+                        Rate our services and help us improve. Earn <strong>50 eco points</strong> for every submission.
+                      </p>
+                    </div>
+                    <button className="db-card-btn db-btn-outline" onClick={() => navigate("/feedback")}>
+                      Give Feedback
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                      </svg>
+                    </button>
+                  </div>
 
               </div>
             </>

@@ -84,33 +84,17 @@ body {
   box-shadow: 0 1px 0 rgba(0,0,0,0.04), var(--shadow-xs);
 }
 
-.db-nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
+.db-nav-brand {display: flex; align-items: center; gap: 8px; }
 
-.db-logo-mark {
-  width: 36px; height: 36px;
-  background: linear-gradient(135deg, var(--green-900), var(--green-600));
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(21,128,61,0.3);
-}
+
+.db-logo-mark {font-size: 22px; color: var(--green); }
 .db-logo-mark svg { width: 18px; height: 18px; stroke: white; }
 .db-logo-mark-sm { width: 30px; height: 30px; border-radius: 8px; }
 .db-logo-mark-sm svg { width: 15px; height: 15px; }
 
-.db-brand-name {
-  font-family: 'DM Serif Display', serif;
-  font-size: 20px;
-  color: var(--green-900);
-  letter-spacing: -0.3px;
-}
+.db-brand-name {  font-family: 'Fraunces', serif;
+  font-size: 20px; font-weight: 700;
+  color: var(--green-900);}
 
 .db-nav-center { flex: 1; display: flex; justify-content: center; }
 
@@ -907,4 +891,14 @@ body {
   .db-hero-title { font-size: 28px; }
   .db-footer-top { grid-template-columns: 1fr; padding: 32px 20px; }
   .db-footer-bottom { flex-direction: column; gap: 8px; text-align: center; padding: 16px 20px; }
+}
+/* In your CitizenDashboard.css, add this rule alongside the other .db-card-* rules: */
+ 
+.db-card-feedback {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(59, 130, 246, 0.06));
+  border-color: rgba(139, 92, 246, 0.2);
+}
+.db-card-feedback:hover {
+  border-color: rgba(139, 92, 246, 0.45);
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.12);
 }

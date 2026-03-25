@@ -1,0 +1,1445 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,700;1,700&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --green: #2ecc71;
+  --green-dark: #27ae60;
+  --green-light: #eafaf1;
+  --green-mid: #d5f5e3;
+  --text: #0f1923;
+  --text-mid: #475569;
+  --text-light: #94a3b8;
+  --white: #ffffff;
+  --border: #e2e8f0;
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --navbar-h: 60px;
+  --sidebar-w: 220px;
+  --esewa: #60bb46;
+  --khalti: #5c2d91;
+}
+
+html, body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); }
+
+/* ========================
+   LOADING
+   ======================== */
+.pay-loading {
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh; font-size: 16px; color: var(--text-light);
+}
+
+/* ========================
+   PAGE
+   ======================== */
+.pay-page { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ========================
+   NAVBAR
+   ======================== */
+.pay-navbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--navbar-h);
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  z-index: 999;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+}
+
+.pay-nav-left { display: flex; align-items: center; gap: 20px; }
+.pay-logo { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.pay-logo-icon { font-size: 18px; background: linear-gradient(135deg, var(--green), var(--green-dark)); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(46,204,113,0.3); }
+.pay-logo-text { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+
+.pay-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.pay-bc-link { color: var(--text-light); cursor: pointer; transition: color 0.2s; }
+.pay-bc-link:hover { color: var(--green-dark); }
+.pay-bc-sep { color: var(--text-light); }
+.pay-bc-active { font-weight: 600; color: var(--green-dark); }
+
+.pay-nav-right { display: flex; align-items: center; gap: 10px; }
+.pay-hello { font-size: 14px; font-weight: 500; color: var(--text-mid); }
+.pay-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--green-light); border: 2px solid var(--green); display: flex; align-items: center; justify-content: center; overflow: hidden; font-weight: 700; color: var(--green-dark); font-size: 13px; }
+.pay-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ========================
+   BODY LAYOUT
+   ======================== */
+.pay-body {
+  display: flex;
+  margin-top: var(--navbar-h);
+  flex: 1;
+}
+
+/* ========================
+   SIDEBAR
+   ======================== */
+.pay-sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  padding: 24px 12px;
+  position: sticky;
+  top: var(--navbar-h);
+  height: calc(100vh - var(--navbar-h));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.pay-sidebar-section { margin-bottom: 16px; }
+
+.pay-sidebar-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
+  color: var(--text-light); padding: 0 14px; margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.pay-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 10px; cursor: pointer;
+  font-size: 13.5px; font-weight: 500; color: var(--text-mid);
+  transition: all 0.2s; position: relative;
+}
+.pay-menu-item:hover { background: var(--green-light); color: var(--green-dark); }
+.pay-menu-active { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: white !important; font-weight: 600; box-shadow: 0 3px 10px rgba(46,204,113,0.3); }
+.pay-menu-active:hover { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: white; }
+
+.pay-badge-new {
+  margin-left: auto; background: var(--green); color: white;
+  font-size: 9px; font-weight: 700; padding: 2px 6px;
+  border-radius: 4px; letter-spacing: 0.5px;
+}
+
+/* Green Impact Box */
+.pay-impact-box {
+  margin: auto 0 16px;
+  background: linear-gradient(135deg, #0f1923, #1a3a20);
+  border-radius: 14px; padding: 16px; color: white;
+}
+.pay-impact-header { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--green); margin-bottom: 8px; }
+.pay-impact-box p { font-size: 12px; color: #94a3b8; line-height: 1.6; margin-bottom: 10px; }
+.pay-impact-box strong { color: var(--green); }
+.pay-impact-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 4px; }
+.pay-impact-fill { height: 100%; background: var(--green); border-radius: 2px; }
+.pay-impact-pct { font-size: 10.5px; color: #64748b; }
+
+.pay-logout {
+  padding: 10px 14px; font-size: 13px; color: var(--text-light);
+  cursor: pointer; transition: color 0.2s; border-top: 1px solid var(--border); padding-top: 14px;
+}
+.pay-logout:hover { color: #e74c3c; }
+
+/* ========================
+   MAIN
+   ======================== */
+.pay-main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pay-main-header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+.pay-title {
+  font-family: 'Fraunces', serif;
+  font-size: 28px; font-weight: 700;
+  color: var(--text); letter-spacing: -0.5px;
+}
+
+.pay-overdue-badge {
+  background: #fee2e2; color: #dc2626;
+  font-size: 11px; font-weight: 700; padding: 4px 12px;
+  border-radius: 20px; letter-spacing: 0.5px; border: 1px solid #fca5a5;
+}
+
+/* TABS */
+.pay-tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 11px; width: fit-content; }
+.pay-tab { padding: 8px 20px; border: none; background: transparent; border-radius: 9px; font-size: 13.5px; font-weight: 600; color: var(--text-mid); cursor: pointer; font-family: 'Outfit', sans-serif; transition: all 0.2s; }
+.pay-tab-active { background: var(--white); color: var(--green-dark); box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+
+/* TWO COLUMN CONTENT */
+.pay-content { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.pay-left-col { display: flex; flex-direction: column; gap: 16px; }
+.pay-right-col { display: flex; flex-direction: column; gap: 16px; position: sticky; top: calc(var(--navbar-h) + 20px); }
+
+/* ========================
+   CARD
+   ======================== */
+.pay-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pay-card-title { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
+.pay-card-sub { font-size: 13px; color: var(--text-light); margin-top: -12px; }
+
+/* Amount Hero */
+.pay-amount-hero {
+  background: linear-gradient(135deg, var(--green-dark), #1a7a40);
+  border-radius: 14px; padding: 22px 24px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.pay-amount-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: rgba(255,255,255,0.65); text-transform: uppercase; }
+.pay-amount-value { font-family: 'Fraunces', serif; font-size: 36px; font-weight: 700; color: white; letter-spacing: -1px; }
+.pay-due-date { font-size: 12.5px; color: rgba(255,255,255,0.75); display: flex; align-items: center; gap: 5px; }
+
+/* Detail rows */
+.pay-details-list { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.pay-detail-row { display: flex; align-items: flex-start; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+.pay-detail-row:last-child { border-bottom: none; }
+.pay-detail-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; }
+.pay-detail-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--text-light); text-transform: uppercase; margin-bottom: 3px; }
+.pay-detail-value { font-size: 13.5px; font-weight: 600; color: var(--text); }
+
+/* Breakdown */
+.pay-breakdown { border-top: 1px solid var(--border); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.pay-breakdown-row { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--text-mid); }
+.pay-breakdown-total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; color: var(--text); padding-top: 8px; border-top: 1px solid var(--border); }
+.pay-total-val { color: var(--green-dark); font-family: 'Fraunces', serif; font-size: 18px; }
+
+/* Security note */
+.pay-security { display: flex; gap: 12px; align-items: flex-start; background: var(--green-light); border: 1px solid var(--green-mid); border-radius: 12px; padding: 14px; }
+.pay-security-icon { font-size: 20px; flex-shrink: 0; }
+.pay-security-title { font-size: 13px; font-weight: 700; color: var(--green-dark); margin-bottom: 4px; }
+.pay-security-desc { font-size: 12px; color: var(--text-mid); line-height: 1.5; }
+
+/* ========================
+   GATEWAYS
+   ======================== */
+.pay-gateways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+.pay-gateway {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 16px 8px; border: 2px solid var(--border); border-radius: 14px;
+  cursor: pointer; transition: all 0.2s; position: relative; background: var(--white);
+}
+.pay-gateway:hover { border-color: var(--green); transform: translateY(-2px); }
+.pay-gateway-active { border-color: var(--green); background: var(--green-light); box-shadow: 0 4px 16px rgba(46,204,113,0.2); }
+
+.pay-gw-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: white; }
+.pay-gw-esewa { background: var(--esewa); }
+.pay-gw-khalti { background: var(--khalti); }
+.pay-gw-qr { background: #dc2626; font-size: 22px; }
+
+.pay-gateway span:not(.pay-gw-icon):not(.pay-gw-check) { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; color: var(--text-mid); text-align: center; }
+.pay-gateway-active span:not(.pay-gw-icon):not(.pay-gw-check) { color: var(--green-dark); }
+
+.pay-gw-check { position: absolute; top: 6px; right: 8px; font-size: 12px; color: var(--green-dark); font-weight: 700; }
+
+/* Gateway info banners */
+.pay-gateway-info { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid; }
+.pay-esewa-info { background: #f0fdf4; border-color: #bbf7d0; }
+.pay-khalti-info { background: #faf5ff; border-color: #d8b4fe; }
+.pay-gateway-info span { font-size: 22px; flex-shrink: 0; }
+.pay-gateway-info strong { font-size: 13px; font-weight: 700; color: var(--text); display: block; margin-bottom: 4px; }
+.pay-gateway-info p { font-size: 12.5px; color: var(--text-mid); line-height: 1.5; }
+
+/* QR Section */
+.pay-qr-section { display: flex; gap: 20px; align-items: flex-start; border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.pay-qr-left { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
+.pay-qr-box { width: 130px; height: 130px; border: 2px solid var(--border); border-radius: 12px; overflow: hidden; background: white; display: flex; align-items: center; justify-content: center; }
+.pay-qr-box img { width: 100%; height: 100%; object-fit: contain; }
+.pay-qr-ready { font-size: 10px; font-weight: 700; color: var(--green-dark); letter-spacing: 0.5px; background: var(--green-light); padding: 4px 10px; border-radius: 20px; }
+.pay-qr-steps { display: flex; flex-direction: column; gap: 8px; }
+.pay-qr-steps h4 { font-size: 14px; font-weight: 700; color: var(--text); }
+.pay-qr-steps p { font-size: 12px; color: var(--text-light); margin-bottom: 4px; }
+.pay-step { display: flex; align-items: flex-start; gap: 10px; }
+.pay-step-num { width: 20px; height: 20px; border-radius: 50%; background: var(--text); color: white; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pay-step span:last-child { font-size: 12px; color: var(--text-mid); line-height: 1.4; }
+
+/* Agree */
+.pay-agree { display: flex; align-items: flex-start; gap: 10px; }
+.pay-agree input { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--green); margin-top: 2px; cursor: pointer; }
+.pay-agree label { font-size: 12px; color: var(--text-mid); line-height: 1.5; cursor: pointer; }
+.pay-agree a { color: var(--green-dark); text-decoration: none; font-weight: 500; }
+
+/* Finalize button */
+.pay-finalize-btn {
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  color: white; border: none; padding: 15px;
+  border-radius: 12px; font-size: 16px; font-weight: 700;
+  cursor: pointer; width: 100%; font-family: 'Outfit', sans-serif;
+  box-shadow: 0 6px 20px rgba(46,204,113,0.4);
+  transition: all 0.2s; letter-spacing: 0.2px;
+}
+.pay-finalize-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(46,204,113,0.5); }
+.pay-finalize-btn:disabled { background: #a8d5b8; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.pay-no-due { text-align: center; font-size: 14px; font-weight: 600; color: var(--green-dark); padding: 12px; background: var(--green-light); border-radius: 10px; }
+
+/* Trust badges */
+.pay-trust { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pay-trust-item { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border); }
+.pay-trust-item span { font-size: 18px; flex-shrink: 0; }
+.pay-trust-item div { display: flex; flex-direction: column; gap: 2px; }
+.pay-trust-item strong { font-size: 10px; font-weight: 700; color: var(--text); letter-spacing: 0.5px; }
+.pay-trust-item span:last-child { font-size: 11px; color: var(--text-light); }
+
+/* ========================
+   PAYMENT HISTORY
+   ======================== */
+.pay-section-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.pay-empty { text-align: center; color: var(--text-light); padding: 40px; font-size: 14px; }
+
+.pay-history { display: flex; flex-direction: column; gap: 14px; }
+.pay-history-list { display: flex; flex-direction: column; gap: 10px; }
+
+.pay-history-item {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
+  transition: all 0.2s;
+}
+.pay-history-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); transform: translateY(-1px); }
+.pay-history-left { display: flex; align-items: center; gap: 14px; }
+.pay-history-icon { width: 42px; height: 42px; border-radius: 11px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.pay-history-desc { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.pay-history-date { font-size: 12px; color: var(--text-light); }
+.pay-history-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.pay-history-amount { font-size: 16px; font-weight: 800; color: var(--text); font-family: 'Fraunces', serif; }
+
+.pay-badge { font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+.badge-paid { background: #d5f5e3; color: #1a7a40; }
+.badge-pending { background: #fef9c3; color: #92400e; }
+.badge-overdue { background: #fee2e2; color: #991b1b; }
+
+/* ========================
+   FOOTER
+   ======================== */
+.pay-footer { background: var(--white); border-top: 1px solid var(--border); padding: 16px 32px; }
+.pay-footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.pay-footer-logo { display: flex; align-items: center; gap: 8px; }
+.pay-footer-copy { font-size: 12px; color: var(--text-light); margin-left: 8px; }
+.pay-footer-links { display: flex; gap: 20px; }
+.pay-footer-links a { font-size: 12px; color: var(--text-light); text-decoration: none; text-transform: uppercase; letter-spacing: 0.3px; transition: color 0.2s; }
+.pay-footer-links a:hover { color: var(--green-dark); }
+.pay-footer-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-light); }
+.pay-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+/* ========================
+   RESPONSIVE
+   ======================== */
+@media (max-width: 1100px) {
+  .pay-content { grid-template-columns: 1fr; }
+  .pay-right-col { position: static; }
+}
+
+@media (max-width: 768px) {
+  .pay-sidebar { display: none; }
+  .pay-main { padding: 16px; }
+  .pay-gateways { grid-template-columns: repeat(3, 1fr); }
+  .pay-trust { grid-template-columns: 1fr; }
+  .pay-footer-links { display: none; }
+}
+
+
+/* ════════════════════════════════════════
+   FINES SECTION
+════════════════════════════════════════ */
+
+/* Fines tab badge */
+.pay-tab-fines { position: relative; }
+.pay-fines-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Warning Banner */
+.pay-fines-warning-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #7f1d1d, #991b1b);
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.pay-fines-banner-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.pay-fines-banner-icon { font-size: 28px; }
+.pay-fines-banner-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 4px;
+}
+.pay-fines-banner-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+}
+.pay-fines-banner-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 28px;
+  font-weight: 800;
+  color: #fca5a5;
+  white-space: nowrap;
+}
+.pay-fines-banner-amount span {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.5);
+  margin-top: 2px;
+}
+
+/* Fines List */
+.pay-fines-section { padding: 4px 0; }
+.pay-fines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+/* Fine Card */
+.pay-fine-card {
+  background: white;
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1.5px solid #e5e7eb;
+  transition: all 0.2s ease;
+  flex-wrap: wrap;
+}
+.pay-fine-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+.pay-fine-card-unpaid {
+  border-left: 4px solid #ef4444;
+  background: #fff5f5;
+}
+.pay-fine-card-paid {
+  border-left: 4px solid #22c55e;
+  background: #f0fdf4;
+  opacity: 0.85;
+}
+
+.pay-fine-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+}
+.pay-fine-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+.pay-fine-details { flex: 1; }
+.pay-fine-reason {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+}
+.pay-fine-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.pay-fine-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pay-fine-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.pay-fine-amount {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+}
+
+/* Fine status badges */
+.pay-fine-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 20px;
+}
+.fine-badge-unpaid { background: #fee2e2; color: #991b1b; }
+.fine-badge-paid   { background: #dcfce7; color: #166534; }
+
+/* Pay Fine button */
+.pay-fine-pay-btn {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.pay-fine-pay-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220,38,38,0.3);
+}
+.pay-fine-pay-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Clear state */
+.pay-fines-clear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+  background: white;
+  border-radius: 14px;
+  border: 1.5px dashed #d1d5db;
+  margin-bottom: 24px;
+}
+.pay-fines-clear-icon { font-size: 48px; margin-bottom: 12px; }
+.pay-fines-clear h3 { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 6px; }
+.pay-fines-clear p  { font-size: 14px; color: #6b7280; }
+
+/* Fine Rules */
+.pay-fine-rules {
+  background: white;
+  border-radius: 14px;
+  border: 1.5px solid #e5e7eb;
+  padding: 22px 24px;
+}
+.pay-fine-rules-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16px;
+}
+.pay-fine-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.pay-fine-rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.pay-fine-rule-icon { font-size: 20px; flex-shrink: 0; }
+.pay-fine-rule-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 3px;
+}
+.pay-fine-rule-amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+@media (max-width: 600px) {
+  .pay-fine-rules-grid { grid-template-columns: 1fr; }
+  .pay-fines-warning-banner { flex-direction: column; }
+  .pay-fines-banner-amount { align-items: flex-start; }
+}
+
+
+/* ════════════════════════════════════════
+   LOADING SPINNER
+════════════════════════════════════════ */
+.pay-loading {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100vh; gap: 16px; color: var(--text-light);
+}
+.pay-loading-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--green-mid);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════════════════════════
+   STEP INDICATOR
+════════════════════════════════════════ */
+.pay-steps {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 0;
+}
+.pay-step-item {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+.pay-step-circle {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+.pay-step-active .pay-step-circle {
+  background: var(--green);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(46,204,113,0.2);
+}
+.pay-step-done .pay-step-circle {
+  background: var(--green-dark);
+  color: white;
+}
+.pay-step-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+.pay-step-active .pay-step-label { color: var(--green); }
+.pay-step-done .pay-step-label   { color: var(--green-dark); }
+.pay-step-line {
+  flex: 1;
+  height: 2px;
+  background: #e5e7eb;
+  margin: 0 8px;
+}
+.pay-step-done .pay-step-line { background: var(--green); }
+
+/* animate card in */
+.pay-animate {
+  animation: payCardIn 0.3s ease both;
+}
+@keyframes payCardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Back button */
+.pay-back-btn {
+  background: none;
+  border: none;
+  color: var(--text-mid);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Outfit', sans-serif;
+  transition: color 0.15s;
+}
+.pay-back-btn:hover { color: var(--green); }
+
+/* Next button */
+.pay-next-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--green-dark), var(--green));
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(46,204,113,0.3);
+}
+.pay-next-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(46,204,113,0.4);
+}
+.pay-next-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ════════════════════════════════════════
+   FINES PANEL (inside Step 1)
+════════════════════════════════════════ */
+.pay-fines-panel {
+  background: #fff8f0;
+  border: 1.5px solid #fed7aa;
+  border-radius: 12px;
+  padding: 18px;
+  margin: 16px 0;
+}
+.pay-fines-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.pay-fines-panel-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.pay-fines-panel-title span { font-size: 22px; }
+.pay-fines-panel-heading {
+  font-size: 14px;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 3px;
+}
+.pay-fines-panel-sub {
+  font-size: 12.5px;
+  color: #b45309;
+}
+
+/* Toggle switch */
+.pay-fines-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.pay-fines-toggle input { display: none; }
+.pay-toggle-track {
+  width: 40px; height: 22px;
+  background: #d1d5db;
+  border-radius: 11px;
+  position: relative;
+  transition: background 0.2s;
+  display: block;
+}
+.pay-fines-toggle input:checked + .pay-toggle-track {
+  background: var(--green);
+}
+.pay-toggle-thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  display: block;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.pay-fines-toggle input:checked ~ .pay-toggle-track .pay-toggle-thumb {
+  transform: translateX(18px);
+}
+.pay-toggle-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+/* Fine items in panel */
+.pay-fines-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pay-fine-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  border-radius: 8px;
+  padding: 10px 14px;
+  gap: 10px;
+}
+.pay-fine-item-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+}
+.pay-fine-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9ca3af;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.pay-fine-item-reason {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
+}
+.pay-fine-item-meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.pay-fine-item-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+/* Fines subtotal */
+.pay-fines-subtotal {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0 0;
+  border-top: 1px dashed #fed7aa;
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+/* Grand total */
+.pay-grand-total {
+  background: linear-gradient(135deg, #064e3b, #065f46);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pay-grand-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pay-grand-note {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.pay-grand-amount {
+  font-size: 26px;
+  font-weight: 800;
+  color: #6ee7b7;
+}
+
+/* ════════════════════════════════════════
+   GATEWAY CARDS (Step 2)
+════════════════════════════════════════ */
+.pay-gateway-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 20px;
+}
+.pay-gateway-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+.pay-gateway-card:hover { border-color: #d1d5db; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.pay-gateway-card-active { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.pay-gw-card-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.pay-gw-card-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.pay-gw-card-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 3px;
+}
+.pay-gw-card-desc {
+  font-size: 12px;
+  color: #6b7280;
+  max-width: 280px;
+}
+.pay-gw-radio {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.pay-gw-radio-active { border-width: 6px; }
+
+/* ════════════════════════════════════════
+   CONFIRM SUMMARY (Step 3)
+════════════════════════════════════════ */
+.pay-confirm-summary {
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 18px;
+  margin: 16px 0;
+}
+.pay-confirm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 13.5px;
+  color: #374151;
+}
+.pay-confirm-row:last-child { border-bottom: none; }
+.pay-confirm-val {
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+}
+.pay-confirm-fine .pay-confirm-val { color: #dc2626; }
+.red { color: #dc2626 !important; }
+
+.pay-confirm-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0 6px;
+  border-top: 2px solid #e5e7eb;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+}
+.pay-confirm-grand {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+}
+
+/* What happens next */
+.pay-what-next {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin: 16px 0;
+}
+.pay-what-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #166534;
+  margin-bottom: 12px;
+}
+.pay-what-steps { display: flex; flex-direction: column; gap: 10px; }
+.pay-what-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #374151;
+}
+.pay-what-num {
+  width: 22px; height: 22px;
+  background: var(--green);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════
+   RIGHT COLUMN STICKY SUMMARY
+════════════════════════════════════════ */
+.pay-sticky-summary { position: sticky; top: 80px; }
+.pay-summary-section {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.pay-summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #9ca3af;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+.pay-summary-label.red { color: #dc2626; }
+.pay-summary-fines-section { background: #fff8f0; border-radius: 10px; padding: 12px; margin-bottom: 14px; }
+.pay-summary-breakdown { display: flex; flex-direction: column; gap: 6px; }
+.pay-summary-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #6b7280;
+}
+.pay-summary-sub-total {
+  font-weight: 700;
+  color: #111827;
+  padding-top: 6px;
+  border-top: 1px dashed #e5e7eb;
+  margin-top: 4px;
+}
+.pay-summary-sub-total.red { color: #dc2626; border-color: #fecaca; }
+.pay-summary-fine-reason {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pay-include-fines-check {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: #374151;
+  font-weight: 600;
+}
+.pay-include-fines-check input { margin-right: 6px; }
+
+.pay-summary-grand-box {
+  background: linear-gradient(135deg, #064e3b, #065f46);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  margin: 14px 0;
+}
+.pay-summary-grand-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 6px;
+}
+.pay-summary-grand-val {
+  font-size: 24px;
+  font-weight: 800;
+  color: #6ee7b7;
+}
+.pay-summary-grand-note {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 4px;
+}
+
+/* Right column step tracker */
+.pay-right-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+}
+.pay-right-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+.pay-right-step.active { color: var(--green); font-weight: 700; }
+.pay-right-step.done   { color: var(--green-dark); }
+.pay-right-step-dot {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.pay-right-step.active .pay-right-step-dot {
+  background: var(--green);
+  color: white;
+}
+.pay-right-step.done .pay-right-step-dot {
+  background: var(--green-dark);
+  color: white;
+}
+
+/* ════════════════════════════════════════
+   SIDEBAR SUMMARY
+════════════════════════════════════════ */
+.pay-sidebar-summary {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  margin: 16px 0;
+}
+.pay-summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: #6b7280;
+  padding: 4px 0;
+}
+.pay-summary-row.pay-summary-fine .pay-summary-amt { color: #dc2626; }
+.pay-summary-amt { font-weight: 700; color: #111827; }
+.pay-summary-divider { height: 1px; background: #e5e7eb; margin: 6px 0; }
+.pay-summary-total { font-weight: 700; color: #111827; }
+.pay-summary-grand { font-size: 14px; font-weight: 800; color: #064e3b; }
+
+/* ════════════════════════════════════════
+   FINES TAB
+════════════════════════════════════════ */
+.pay-fines-tab { padding: 4px 0; }
+.pay-fines-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #7f1d1d, #991b1b);
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.pay-fines-banner-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.pay-fines-banner-icon { font-size: 28px; }
+.pay-fines-banner-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 4px;
+}
+.pay-fines-banner-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+}
+.pay-fines-pay-btn {
+  background: white;
+  color: #991b1b;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.pay-fines-pay-btn:hover { background: #fef2f2; }
+
+.pay-fines-clear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  background: #f0fdf4;
+  border-radius: 14px;
+  border: 1.5px dashed #86efac;
+  margin-bottom: 24px;
+  text-align: center;
+  gap: 8px;
+}
+.pay-fines-clear span { font-size: 40px; }
+.pay-fines-clear h3   { font-size: 18px; font-weight: 700; color: #166534; }
+.pay-fines-clear p    { font-size: 13.5px; color: #6b7280; }
+
+.pay-fines-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+
+.pay-fine-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  border-radius: 14px;
+  padding: 18px 20px;
+  border: 1.5px solid #e5e7eb;
+  gap: 16px;
+  transition: all 0.2s ease;
+  flex-wrap: wrap;
+}
+.pay-fine-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.pay-fine-unpaid { border-left: 4px solid #ef4444; background: #fff5f5; }
+.pay-fine-paid   { border-left: 4px solid #22c55e; background: #f0fdf4; opacity: 0.8; }
+
+.pay-fine-card-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+}
+.pay-fine-icon  { font-size: 24px; flex-shrink: 0; }
+.pay-fine-info  { flex: 1; }
+.pay-fine-reason {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 5px;
+}
+.pay-fine-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.pay-fine-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.pay-fine-amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+}
+.pay-fine-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 20px;
+}
+.fine-paid   { background: #dcfce7; color: #166534; }
+.fine-unpaid { background: #fee2e2; color: #991b1b; }
+
+/* Fine rules */
+.pay-fine-rules {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+.pay-fine-rules h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 14px;
+}
+.pay-fine-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.pay-fine-rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 20px;
+}
+.pay-fine-rule-name { font-size: 12.5px; font-weight: 600; color: #374151; margin-bottom: 3px; }
+.pay-fine-rule-amt  { font-size: 13px;   font-weight: 700; color: #dc2626; }
+
+/* Tab badge */
+.pay-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+@media (max-width: 600px) {
+  .pay-fine-rules-grid { grid-template-columns: 1fr; }
+  .pay-fines-banner    { flex-direction: column; }
+  .pay-steps           { gap: 4px; }
+  .pay-step-label      { display: none; }
+  .pay-grand-total     { flex-direction: column; gap: 8px; text-align: center; }
+}
+
+
+/* ════════════════════════════════════════
+   DELETE BUTTON & MODAL
+════════════════════════════════════════ */
+
+/* Delete button on history/fine cards */
+.pay-delete-btn {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid #e5e7eb;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+.pay-delete-btn:hover {
+  border-color: #ef4444;
+  background: #fef2f2;
+  color: #ef4444;
+  transform: scale(1.05);
+}
+
+/* Modal overlay */
+.pay-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Modal box */
+.pay-modal-box {
+  background: white;
+  border-radius: 20px;
+  padding: 36px 32px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  animation: modalPop 0.25s ease;
+}
+@keyframes modalPop {
+  from { transform: scale(0.92) translateY(10px); opacity: 0; }
+  to   { transform: scale(1)    translateY(0);    opacity: 1; }
+}
+
+.pay-modal-icon  { font-size: 44px; margin-bottom: 12px; }
+.pay-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 10px;
+}
+.pay-modal-desc {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+.pay-modal-warning {
+  display: block;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.pay-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.pay-modal-cancel {
+  padding: 11px 26px;
+  border: 1.5px solid #e5e7eb;
+  background: white;
+  border-radius: 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.pay-modal-cancel:hover:not(:disabled) { background: #f9fafb; }
+.pay-modal-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pay-modal-confirm {
+  padding: 11px 26px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+}
+.pay-modal-confirm:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+.pay-modal-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
