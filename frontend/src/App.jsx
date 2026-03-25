@@ -1,26 +1,32 @@
 import { Routes, Route } from "react-router-dom";
+import LandingPage from "./pages/citizenPage/Landingpage.jsx";
+import ProfilePage from "./pages/citizenPage/ProfilePage.jsx";
 import Login from "./pages/login.jsx";
 import Register from "./pages/Register.jsx";
-import CitizenDashboard from "./pages/citizenDashboard.jsx";
-import NewRequest from "./pages/NewRequest.jsx";
-import Payment from "./pages/Payment";
-import PaymentSuccess, { PaymentFailed } from "./pages/PaymentSuccess";
-import Complaints from "./pages/Complaints";
+import CitizenDashboard from "./pages/citizenPage/CitizenDashboard.jsx";
+import NewRequest from "./pages/citizenPage/NewRequest.jsx";
+import Payment from "./pages/citizenPage/Payment.jsx";
+import PaymentSuccess, { PaymentFailed } from "./pages/citizenPage/PaymentSuccess.jsx";
+import Complaints from "./pages/citizenPage/Complaints.jsx";
+import Feedback from "./pages/citizenPage/Feedback.jsx";
+
 
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/dashboard" element={<CitizenDashboard />} />
       <Route path="/new-request" element={<NewRequest />} />
-      <Route path="/payment"        element={<Payment />} />
+      <Route path="/payment" element={<Payment />} />
       <Route path="/payment/success" element={<PaymentSuccess />} />
-      <Route path="/payment/failed"  element={<PaymentFailed />} />
+      <Route path="/payment/failed" element={<PaymentFailed />} />
       <Route path="/complaints" element={<Complaints />} />
-      
+      <Route path="/Feedback" element={<Feedback />} />
+
     </Routes>
   );
 }

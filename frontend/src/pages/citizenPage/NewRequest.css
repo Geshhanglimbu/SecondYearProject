@@ -46,7 +46,9 @@ body {
 
 .nr-logo { display: flex; align-items: center; gap: 8px; }
 .nr-logo-icon { font-size: 22px; color: var(--green); }
-.nr-logo-text { font-size: 18px; font-weight: 700; color: var(--green-dark); }
+.nr-logo-text {   font-family: 'Fraunces', serif;
+  font-size: 20px; font-weight: 700;
+  color: var(--green-900); }
 
 .nr-nav-right { display: flex; align-items: center; gap: 12px; }
 .nr-hello { font-size: 14px; font-weight: 500; }

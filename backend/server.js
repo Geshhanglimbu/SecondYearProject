@@ -15,6 +15,7 @@ import path     from "path";
 import fs       from "fs";
 import axios    from "axios";
 import crypto   from "crypto";
+import profileRoutes from "./profileRoute.js";
 
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
@@ -97,16 +98,33 @@ const upload = multer({ storage });
    ══════════════════════════════════════════════ */
 app.post("/register", upload.single("image"), async (req, res) => {
   const { role, name, email, phone, address, password } = req.body;
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const image = req.file ? req.file.filename : null;
-  const sql = "INSERT INTO users (role, name, email, phone, address, password, image) VALUES (?, ?, ?, ?, ?, ?, ?)";
-  db.query(sql, [role, name, email, phone, address, hashedPassword, image], (err) => {
+  
+  // Check for duplicate phone or email before inserting
+  db.query("SELECT email, phone FROM users WHERE email = ? OR phone = ?", [email, phone], async (err, results) => {
     if (err) {
-      if (err.code === "ER_DUP_ENTRY") return res.status(400).json({ message: "Email already registered! Please use a different email." });
-      console.log(err);
-      return res.status(500).json({ message: "Registration failed" });
+      console.log("Check SQL ERROR:", err);
+      return res.status(500).json({ message: "Server error" });
     }
-    res.json({ message: "Registered successfully" });
+
+    if (results.length > 0) {
+      if (results.some(u => u.phone === phone)) {
+        return res.status(400).json({ message: "Phone number already registered. Please use a different phone number." });
+      }
+      if (results.some(u => u.email === email)) {
+        return res.status(400).json({ message: "Email already registered. Please use a different email." });
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const image = req.file ? req.file.filename : null;
+    const sql = "INSERT INTO users (role, name, email, phone, address, password, image) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    db.query(sql, [role, name, email, phone, address, hashedPassword, image], (insertErr) => {
+      if (insertErr) {
+        console.log("Registration SQL ERROR:", insertErr);
+        return res.status(500).json({ message: "Registration failed" });
+      }
+      res.json({ message: "Registered successfully" });
+    });
   });
 });
 
@@ -665,3 +683,92 @@ app.get("/api/fines", (req, res) => {
     }
   );
 });
+
+/* ══════════════════════════════════════════════════════════
+   FEEDBACK ROUTES
+   ══════════════════════════════════════════════════════════ */
+
+/* GET all feedback for a user */
+app.get("/api/feedback/:userId", (req, res) => {
+  const userId = req.params.userId;
+  const sql = `SELECT * FROM feedback WHERE user_id = ? ORDER BY created_at DESC`;
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("Failed to fetch feedback:", err);
+      return res.status(500).json({ message: "Failed to fetch feedback" });
+    }
+    res.json(Array.isArray(results) ? results : []);
+  });
+});
+
+/* GET all feedback — admin view */
+app.get("/api/feedback", (req, res) => {
+  const sql = `
+    SELECT f.*, u.name as user_name, u.email as user_email
+    FROM feedback f
+    JOIN users u ON f.user_id = u.id
+    ORDER BY f.created_at DESC
+  `;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Failed to fetch all feedback:", err);
+      return res.status(500).json({ message: "Failed to fetch feedback" });
+    }
+    res.json(Array.isArray(results) ? results : []);
+  });
+});
+
+/* POST submit new feedback */
+app.post("/api/feedback", upload.single("photo"), (req, res) => {
+  const { userId, type, title, details, rating } = req.body;
+  if (!userId || !type || !title || !details) {
+    return res.status(400).json({ message: "userId, type, title and details are required" });
+  }
+  const photo = req.file ? req.file.filename : null;
+  const sql = `
+    INSERT INTO feedback (user_id, type, title, details, rating, photo, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())
+  `;
+  db.query(sql, [userId, type, title, details, rating || 0, photo], (err, result) => {
+    if (err) {
+      console.error("Failed to submit feedback:", err);
+      return res.status(500).json({ message: "Failed to submit feedback" });
+    }
+    res.json({ id: result.insertId, photo, message: "Feedback submitted successfully" });
+  });
+});
+
+/* PUT update feedback status + admin response (admin only) */
+app.put("/api/feedback/:id", (req, res) => {
+  const id = req.params.id;
+  const { status, admin_response } = req.body;
+  const valid = ["pending", "in_progress", "resolved", "received", "closed"];
+  if (status && !valid.includes(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
+  const sql = `UPDATE feedback SET status = ?, admin_response = ? WHERE id = ?`;
+  db.query(sql, [status || "pending", admin_response || null, id], (err) => {
+    if (err) {
+      console.error("Failed to update feedback:", err);
+      return res.status(500).json({ message: "Failed to update feedback" });
+    }
+    res.json({ message: "Feedback updated successfully" });
+  });
+});
+
+/* DELETE a feedback submission */
+app.delete("/api/feedback/:id", (req, res) => {
+  const id = req.params.id;
+  db.query("DELETE FROM feedback WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Failed to delete feedback:", err);
+      return res.status(500).json({ message: "Failed to delete feedback" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Feedback not found" });
+    }
+    res.json({ message: "Feedback deleted successfully" });
+  });
+});
+
+app.use('/api/citizen', profileRoutes);

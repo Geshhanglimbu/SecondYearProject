@@ -253,6 +253,7 @@ const Payment = () => {
             <div className="pay-menu-item" onClick={() => navigate("/dashboard")}><span>📊</span> Dashboard</div>
             <div className="pay-menu-item" onClick={() => navigate("/new-request")}><span>📋</span> New Requests<span className="pay-badge-new">NEW</span></div>
             <div className="pay-menu-item" onClick={() => navigate("/complaints")}><span>💬</span> Complaints</div>
+            <div className="pay-menu-item" onClick={() => navigate("/Feedback")}><span>✦</span> Feedback</div>
           </div>
           <div className="pay-sidebar-section">
             <div className="pay-sidebar-label">USER PORTAL</div>

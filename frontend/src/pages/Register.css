@@ -311,7 +311,7 @@ html, body {
 .reg-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 5px;
 }
 
 /* Input wrap */
@@ -323,9 +323,13 @@ html, body {
   background: var(--white);
   overflow: hidden;
   transition: border-color 0.2s;
+ 
 }
 .reg-input-wrap:focus-within { border-color: var(--green); }
-
+.reg-input-wrap input {
+  width: 100%;
+  box-sizing: border-box;
+}
 .reg-input-icon {
   padding: 0 10px;
   font-size: 14px;
@@ -405,11 +409,18 @@ html, body {
 }
 
 @media (max-width: 820px) {
-  .reg-left { display: none; }
-  .reg-right { width: 100%; padding: 24px 16px; }
-  .reg-card { padding: 28px 20px; }
+  .reg-page { flex-direction: column; height: auto; min-height: 100vh; }
+  .reg-left { width: 100%; flex: none; padding: 40px 24px; min-height: fit-content; text-align: center; align-items: center; }
+  .reg-left-inner { width: 100%; }
+  .reg-brand { justify-content: center; margin-bottom: 30px; }
+  .reg-sub { margin: 0 auto 20px auto; max-width: 100%; font-size: 14px; }
+  .reg-features { display: none; } /* Hide heavy features block to save space */
+  .reg-right { width: 100%; padding: 24px 16px; flex: 1; height: auto; }
+  .reg-card { max-width: 100%; padding: 28px 20px; margin: 0 auto; }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .reg-row { grid-template-columns: 1fr; }
+  .reg-role-tabs { grid-template-columns: 1fr; gap: 8px; }
+  .reg-avatar-row { flex-direction: column; align-items: flex-start; gap: 12px; }
 }

@@ -137,6 +137,9 @@ const NewRequest = () => {
             <div className="nr-menu-item" onClick={() => navigate("/payment")}>
               <span>💳</span><span>Payment</span>
             </div>
+            <div className="nr-menu-item" onClick={() => navigate("/Feedback")}>
+              <span>✦</span><span>Feedback</span>
+            </div>
           </nav>
           <div className="nr-quote-box">
             <p>"The easiest waste to manage is the waste we never create."</p>

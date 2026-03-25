@@ -132,9 +132,7 @@ export default function Complaints() {
       <nav className="complaints-navbar">
         <div className="nav-brand">
           <div className="nav-logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M3 6l3 1m0 0l-3 9a5 5 0 006.5 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5 5 0 006.5 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-            </svg>
+            ♻
           </div>
           <span className="nav-title">EcoConnect</span>
         </div>
@@ -157,7 +155,8 @@ export default function Complaints() {
               { key: "dashboard",  icon: "⊞", label: "Dashboard",  path: "/dashboard"   },
               { key: "newrequest", icon: "+",  label: "New Request", path: "/new-request" },
               { key: "complaints", icon: "⚑",  label: "Complaints", path: "/complaints"  },
-              { key: "payments",   icon: "₨",  label: "Payments",   path: "/payment"     },
+              { key: "payments",   icon: "💳",  label: "Payments",   path: "/payment"     },
+              { key: "feedback",   icon: "✦",  label: "Feedback",   path: "/Feedback"    },
             ].map(item => (
               <button
                 key={item.key}
