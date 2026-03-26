@@ -24,32 +24,226 @@ function WeeklyChart({ data }) {
   );
 }
 
-// ── Mini map (OpenStreetMap iframe, no API key needed) ──
+// ── Route Map using Leaflet — one pin per task ──
 function RouteMap({ tasks }) {
-  const locations = tasks.filter(t => t.location && t.location !== "—").slice(0, 5);
-  const src = `https://www.openstreetmap.org/export/embed.html?bbox=85.2,27.6,85.4,27.8&layer=mapnik&marker=27.7172,85.3240`;
+  const mapRef      = useRef(null);
+  const leafletRef  = useRef(null);
+  const markersRef  = useRef({});  // ← use object keyed by task.id, not array
+  const [ready, setReady] = useState(false);
+
+  const validTasks = tasks.filter(t => t.location && t.location !== "—");
+
+ const geocode = async (address) => {
+  try {
+    const res  = await fetch(`http://localhost:5001/api/geocode?q=${encodeURIComponent(address)}`);
+    const data = await res.json();
+    if (data.length > 0) return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  } catch {}
+  return null;
+};
+
+  const getColor = (status) =>
+    status === "completed"   ? "#22c55e" :
+    status === "in_progress" ? "#8b5cf6" : "#f59e0b";
+
+  const getLabel = (status) =>
+    status === "completed"   ? "✅ Done" :
+    status === "in_progress" ? "🔄 In Progress" : "🕐 Pending";
+
+  // ── Step 1: Load Leaflet JS/CSS once ──
+  useEffect(() => {
+    if (window.L) { setReady(true); return; }
+
+    if (!document.getElementById("leaflet-css")) {
+      const link  = document.createElement("link");
+      link.id     = "leaflet-css";
+      link.rel    = "stylesheet";
+      link.href   = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+
+    if (!document.getElementById("leaflet-js")) {
+      const script   = document.createElement("script");
+      script.id      = "leaflet-js";
+      script.src     = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload  = () => setReady(true);
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  // ── Step 2: Init map only after Leaflet is ready ──
+  useEffect(() => {
+    if (!ready || !mapRef.current || leafletRef.current) return;
+    const L   = window.L;
+    const map = L.map(mapRef.current).setView([27.7172, 85.3240], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors",
+    }).addTo(map);
+    leafletRef.current = map;
+  }, [ready]);
+
+  // ── Step 3: Add markers after map is initialized ──
+  useEffect(() => {
+    if (!leafletRef.current || !window.L) return;
+    addMarkers();
+  }, [leafletRef.current, tasks]);
+
+  const addMarkers = async () => {
+    const L   = window.L;
+    const map = leafletRef.current;
+    if (!L || !map) return;
+
+    // Remove old markers
+    Object.values(markersRef.current).forEach(m => map.removeLayer(m));
+    markersRef.current = {};
+
+    const bounds = [];
+
+    for (const task of validTasks) {
+      const coords = await geocode(task.location);
+      if (!coords) continue;
+
+      const color = getColor(task.status);
+      const num   = task.id.replace("SCH-", "");
+
+      const icon = L.divIcon({
+        className: "",
+        html: `
+          <div style="
+            background:${color};
+            width:36px; height:36px;
+            border-radius:50% 50% 50% 0;
+            transform:rotate(-45deg);
+            border:3px solid white;
+            box-shadow:0 2px 8px rgba(0,0,0,0.35);
+            display:flex; align-items:center; justify-content:center;
+          ">
+            <span style="transform:rotate(45deg); font-size:12px; color:white; font-weight:800; line-height:1;">
+              ${num}
+            </span>
+          </div>`,
+        iconSize:    [36, 36],
+        iconAnchor:  [18, 36],
+        popupAnchor: [0, -40],
+      });
+
+      const popup = `
+        <div style="font-family:sans-serif; min-width:190px; padding:4px;">
+          <div style="font-weight:800; font-size:14px; margin-bottom:6px; color:#111;">${task.id}</div>
+          <div style="margin-bottom:3px; font-size:13px;">👤 <strong>${task.citizen}</strong></div>
+          <div style="margin-bottom:3px; font-size:13px;">📦 ${task.name}</div>
+          <div style="margin-bottom:3px; font-size:12px; color:#555;">📍 ${task.location}</div>
+          <div style="margin-bottom:6px; font-size:12px; color:#555;">📅 ${task.date ? new Date(task.date).toLocaleDateString() : "—"}</div>
+          <span style="
+            font-size:11px; font-weight:700;
+            color:${color};
+            background:${color}22;
+            padding:3px 10px; border-radius:999px;
+          ">${getLabel(task.status)}</span>
+        </div>
+      `;
+
+      const marker = L.marker(coords, { icon }).addTo(map).bindPopup(popup);
+      markersRef.current[task.id] = marker; // ← key by task.id
+      bounds.push(coords);
+    }
+
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  };
+
+  // ── Click handler: fly to marker by task.id ──
+  const flyToTask = (taskId) => {
+    const marker = markersRef.current[taskId];
+    if (marker && leafletRef.current) {
+      leafletRef.current.flyTo(marker.getLatLng(), 16, { duration: 1.2 });
+      setTimeout(() => marker.openPopup(), 1300);
+    }
+  };
+
   return (
-    <div className="stf-map-wrap">
-      <iframe
-        title="Task Map"
-        src={src}
-        className="stf-map-iframe"
-        loading="lazy"
-      />
-      <div className="stf-map-pins">
-        {locations.length === 0
-          ? <p className="stf-map-empty">No location data available</p>
-          : locations.map((t, i) => (
-            <div key={i} className="stf-map-pin-item">
-              <span className="stf-map-pin-dot" style={{ background: t.status === "completed" ? "var(--green-500)" : t.status === "in_progress" ? "var(--purple)" : "var(--amber)" }} />
-              <span className="stf-map-pin-label">{t.id} — {t.location}</span>
-              <span className={`stf-status-badge ${t.status === "completed" ? "stf-badge-completed" : t.status === "in_progress" ? "stf-badge-inprogress" : "stf-badge-pending"}`}>
-                {t.status === "in_progress" ? "In Progress" : t.status === "completed" ? "Done" : "Pending"}
+    <div style={{ display: "flex", gap: "16px", height: "600px" }}>
+
+      {/* ── Left sidebar: task list ── */}
+      <div style={{
+        width: "280px", overflowY: "auto", flexShrink: 0,
+        background: "var(--card-bg, #1e2433)",
+        borderRadius: "12px", padding: "12px",
+        display: "flex", flexDirection: "column", gap: "8px",
+      }}>
+        <div style={{ fontWeight: 700, fontSize: "13px", color: "#9ca3af", marginBottom: "4px" }}>
+          📍 {validTasks.length} Task Locations
+        </div>
+
+        {validTasks.length === 0 ? (
+          <p style={{ color: "#6b7280", fontSize: "13px" }}>No tasks with location data</p>
+        ) : (
+          validTasks.map((t) => (
+            <div
+              key={t.id}
+              onClick={() => flyToTask(t.id)}
+              style={{
+                padding: "10px 12px", borderRadius: "8px",
+                background: "var(--card-bg2, #252d3d)",
+                borderLeft: `3px solid ${getColor(t.status)}`,
+                cursor: "pointer", transition: "all 0.2s",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.opacity   = "0.85";
+                e.currentTarget.style.transform = "translateX(3px)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.opacity   = "1";
+                e.currentTarget.style.transform = "translateX(0)";
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: "13px", color: "#f3f4f6" }}>{t.id}</div>
+              <div style={{ fontSize: "12px", color: "#9ca3af", margin: "2px 0" }}>👤 {t.citizen}</div>
+              <div style={{ fontSize: "11px", color: "#6b7280", marginBottom: "4px" }}>📍 {t.location}</div>
+              <span style={{
+                fontSize: "11px", fontWeight: 600,
+                color: getColor(t.status),
+                background: getColor(t.status) + "22",
+                padding: "2px 8px", borderRadius: "999px",
+              }}>
+                {getLabel(t.status)}
               </span>
             </div>
           ))
-        }
+        )}
       </div>
+
+      {/* ── Right: Leaflet map ── */}
+      <div style={{ flex: 1, borderRadius: "12px", overflow: "hidden", position: "relative" }}>
+        {!ready && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 999, borderRadius: "12px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "#1e2433", color: "white", flexDirection: "column", gap: "12px",
+          }}>
+            <div style={{
+              width: 36, height: 36, border: "3px solid #10b981",
+              borderTopColor: "transparent", borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+            }} />
+            <p style={{ margin: 0, fontWeight: 600 }}>Loading map…</p>
+          </div>
+        )}
+        {validTasks.length === 0 && ready && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 999,
+            display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center",
+            background: "rgba(0,0,0,0.5)", color: "white", borderRadius: "12px",
+          }}>
+            <span style={{ fontSize: "40px" }}>🗺️</span>
+            <p style={{ marginTop: "12px", fontWeight: 600 }}>No task locations to display</p>
+          </div>
+        )}
+        <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
+      </div>
+
     </div>
   );
 }
@@ -136,7 +330,7 @@ function WeatherWidget() {
   );
 }
 
-const BASE = "http://localhost:5001"; // ← single place to change your API base URL
+const BASE = "http://localhost:5001";
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
@@ -166,13 +360,6 @@ export default function StaffDashboard() {
     localStorage.setItem("stf-dark", darkMode);
   }, [darkMode]);
 
-  // ── Load staff user from localStorage ──
-  useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (!stored) { navigate("/login"); return; }
-    setStaffUser(JSON.parse(stored));
-  }, []);
-
   // ── Live clock ──
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -184,25 +371,17 @@ export default function StaffDashboard() {
   const hour       = currentTime.getHours();
   const greeting   = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
 
-  // ════════════════════════════════════════════════
-  // FIX 1 — fetch from /api/staff/schedules with
-  //          staff_id so only THIS worker's tasks come back.
-  //          The old code used /schedules with no filter,
-  //          returning every schedule in the database.
-  // ════════════════════════════════════════════════
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3200);
+  };
+
   const fetchSchedules = async (user) => {
-    // Use the user passed in directly (avoids stale closure on staffUser)
     const staffId = user?.id;
-    if (!staffId) {
-      setLoading(false);
-      return;
-    }
+    if (!staffId) { setLoading(false); return; }
 
     try {
       setLoading(true);
-
-      // ✅ FIXED URL — was: /schedules (no filter)
-      //               now: /api/staff/schedules?staff_id=X
       const res  = await fetch(`${BASE}/api/staff/schedules?staff_id=${staffId}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -239,7 +418,6 @@ export default function StaffDashboard() {
     }
   };
 
-  // ── Build weekly chart from completed tasks ──
   const buildWeeklyData = (taskList) => {
     const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     const today = new Date();
@@ -256,45 +434,41 @@ export default function StaffDashboard() {
     setWeeklyData(week);
   };
 
-  // ════════════════════════════════════════════════
-  // FIX 2 — wait for staffUser to be set before fetching.
-  //          The old code called fetchSchedules() in a
-  //          separate useEffect that ran before staffUser
-  //          was populated, so staffId was always null/undefined.
-  // ════════════════════════════════════════════════
+  // ── Load user + fetch schedules ──
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (!stored) { navigate("/login"); return; }
     const parsed = JSON.parse(stored);
     setStaffUser(parsed);
-    fetchSchedules(parsed); // ✅ pass user directly, no stale closure
+    fetchSchedules(parsed);
   }, []);
 
+  // ── GPS location reporting ──
   useEffect(() => {
-  if (!staffUser?.id) return;
- 
-  const sendLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        fetch("http://localhost:5001/api/admin/gps", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            staff_id: staffUser.id,
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          }),
-        }).catch(() => {}); // silent fail — don't interrupt staff
-      },
-      () => {} // permission denied — silent
-    );
-  };
- 
-  sendLocation(); // send immediately on mount
-  const interval = setInterval(sendLocation, 30000); // then every 30s
-  return () => clearInterval(interval);
-}, [staffUser?.id]);
+    if (!staffUser?.id) return;
+
+    const sendLocation = () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          fetch("http://localhost:5001/api/admin/gps", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              staff_id: staffUser.id,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+            }),
+          }).catch(() => {});
+        },
+        () => {}
+      );
+    };
+
+    sendLocation();
+    const interval = setInterval(sendLocation, 30000);
+    return () => clearInterval(interval);
+  }, [staffUser?.id]);
 
   // ── Close dropdowns on outside click ──
   useEffect(() => {
@@ -318,21 +492,8 @@ export default function StaffDashboard() {
     ? tasks.filter(t => t.status !== "completed")
     : tasks.filter(t => t.status === "completed");
 
-  const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3200);
-  };
-
-  // ════════════════════════════════════════════════
-  // FIX 3 — use the correct PUT endpoint.
-  //          Old: /schedules/:id  (scheduleRoutes.js — no staff_name support)
-  //          New: /api/staff/schedules/:id  (staffRoutes.js — handles
-  //               staff_name + completed_at stamping)
-  // ════════════════════════════════════════════════
   const updateTaskStatus = useCallback(async (id, dbId, status) => {
     try {
-      // ✅ FIXED URL — was: /schedules/${dbId}
-      //               now: /api/staff/schedules/${dbId}
       const res = await fetch(`${BASE}/api/staff/schedules/${dbId}`, {
         method:  "PUT",
         headers: { "Content-Type": "application/json" },
@@ -407,8 +568,7 @@ export default function StaffDashboard() {
       {/* ══════════════════ NAVBAR ══════════════════ */}
       <nav className="stf-navbar">
         <div className="stf-nav-brand">
-          <div className="stf-logo-mark">♻
-          </div>
+          <div className="stf-logo-mark">♻</div>
           <span className="stf-brand-name">EcoConnect</span>
         </div>
 
@@ -792,21 +952,21 @@ export default function StaffDashboard() {
         <div className="stf-footer-inner">
           <div className="stf-footer-brand">
             <div className="stf-footer-logo-row">
-              <div className="stf-logo-mark stf-logo-sm">♻
-              </div>
+              <div className="stf-logo-mark stf-logo-sm">♻</div>
               <span className="stf-footer-brand-name">EcoConnect</span>
             </div>
             <p className="stf-footer-tagline">Connecting communities for a greener future.</p>
             <p className="stf-footer-copy">© 2025 EcoConnect. All rights reserved.</p>
           </div>
-         <div className="stf-footer-col">Navigation
+          <div className="stf-footer-col">
+            <h4>Navigation</h4>
             <ul className="db-footer-links">
               {[
-                { label: "Dashboard",   action: () => setActiveMenu("dashboard") },
-                { label: "Tasks", action: () => navigate("/tasks")   },
-                { label: "Schedule",  action: () => navigate("/schedule")    },
-                { label: "Route Map",    action: () => navigate("/route-map")       },
-                { label: "Profile",    action: () => navigate("/profile")      },
+                { label: "Dashboard", action: () => setActivePage("dashboard") },
+                { label: "Tasks",     action: () => setActivePage("tasks")     },
+                { label: "Schedule",  action: () => setActivePage("schedule")  },
+                { label: "Route Map", action: () => setActivePage("map")       },
+                { label: "Profile",   action: () => setActivePage("profile")   },
               ].map(l => (
                 <li key={l.label}>
                   <button className="db-footer-link-btn" onClick={l.action}>{l.label}</button>

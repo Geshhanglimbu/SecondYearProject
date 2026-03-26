@@ -216,6 +216,13 @@ export default function Complaints() {
               >
                 <span>🗑</span> Delete Lists
               </button>
+              // Add a refresh button next to the header actions
+              <button 
+                className="btn-new-request-nav" 
+                onClick={() => fetchRequests(user.id)}
+              >
+                🔄 Refresh
+              </button>
             </div>
           </div>
 

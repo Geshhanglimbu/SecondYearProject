@@ -7,45 +7,48 @@ const router = express.Router();
    GET /api/admin/requests
    ══════════════════════════════════════════════ */
 router.get("/requests", (req, res) => {
-  const sql = `
-    SELECT r.*, u.name AS citizen_name
-    FROM requests r
-    LEFT JOIN users u ON r.user_id = u.id
-    ORDER BY r.created_at DESC
-  `;
-  db.query(sql, (err, results) => {
-    if (err) return res.status(500).json({ message: "Failed to fetch requests", error: err.message });
-    res.json(results);
-  });
+  db.query(
+    `SELECT r.*, u.name AS citizen_name
+     FROM requests r LEFT JOIN users u ON r.user_id = u.id
+     ORDER BY r.created_at DESC`,
+    (err, results) => {
+      if (err) return res.status(500).json({ message: "Failed to fetch requests", error: err.message });
+      res.json(results);
+    }
+  );
 });
 
 /* ══════════════════════════════════════════════
    PUT /api/admin/requests/:id/status
-   - accepted  → set requests.status = 'accepted'
-                 INSERT into schedules WITH request_id stored
-   - declined  → set requests.status = 'declined'
-   - pending   → reopen
+   Now accepts assigned_staff_id from admin so
+   staff_id is properly saved in schedules
    ══════════════════════════════════════════════ */
 router.put("/requests/:id/status", (req, res) => {
-  const { status } = req.body;
+  const { status, assigned_staff_id } = req.body; // ← admin sends staff id
   const reqId = parseInt(req.params.id);
 
-  db.query("UPDATE requests SET status = ? WHERE id = ?", [status, reqId], (err) => {
+  // If admin is assigning a staff, update requests.assigned_to too
+  const updateSql = assigned_staff_id
+    ? "UPDATE requests SET status = ?, assigned_to = ? WHERE id = ?"
+    : "UPDATE requests SET status = ? WHERE id = ?";
+  const updateParams = assigned_staff_id
+    ? [status, assigned_staff_id, reqId]
+    : [status, reqId];
+
+  db.query(updateSql, updateParams, (err) => {
     if (err) return res.status(500).json({ message: "Failed to update status", error: err.message });
 
     if (status === "accepted") {
-      // First check if a schedule already exists for this request_id
       db.query("SELECT id FROM schedules WHERE request_id = ?", [reqId], (err2, existing) => {
         if (err2) { console.error("⚠️ Schedule check error:", err2.message); return res.json({ message: "Status updated" }); }
-        if (existing.length > 0) return res.json({ message: "Status updated" }); // already has schedule
+        if (existing.length > 0) return res.json({ message: "Status updated" });
 
-        // Insert schedule with request_id so staff→citizen sync works
         const insertSql = `
           INSERT INTO schedules
             (request_id, staff_id, area, collection_date, status, type, location, pickup_time, citizen_name, created_at)
           SELECT
             r.id,
-            r.assigned_to,
+            COALESCE(r.assigned_to, ?),
             r.location,
             COALESCE(r.pickup_date, DATE_ADD(CURDATE(), INTERVAL 1 DAY)),
             'pending',
@@ -58,9 +61,10 @@ router.put("/requests/:id/status", (req, res) => {
           LEFT JOIN users u ON r.user_id = u.id
           WHERE r.id = ?
         `;
-        db.query(insertSql, [reqId], (err3) => {
+        // COALESCE(r.assigned_to, ?) uses assigned_staff_id as fallback
+        db.query(insertSql, [assigned_staff_id || null, reqId], (err3) => {
           if (err3) console.error("⚠️ Schedule insert error:", err3.message);
-          else      console.log(`✅ Schedule created for request ${reqId}`);
+          else      console.log(`✅ Schedule created for request ${reqId} → staff ${assigned_staff_id}`);
         });
       });
     }
@@ -74,56 +78,6 @@ router.put("/requests/:id/status", (req, res) => {
    ══════════════════════════════════════════════ */
 router.get("/citizens", (req, res) => {
   db.query(
-    "SELECT id, name, email, image, created_at FROM users WHERE role = 'citizen' ORDER BY created_at DESC",
-    (err, results) => {
-      if (err) return res.status(500).json({ message: "Failed to fetch citizens", error: err.message });
-      res.json(results);
-    }
-  );
-});
-
-
-/* ══════════════════════════════════════════════
-   REQUESTS
-   ══════════════════════════════════════════════ */
-router.get("/requests", (req, res) => {
-  db.query(
-    `SELECT r.*, u.name AS citizen_name
-     FROM requests r LEFT JOIN users u ON r.user_id = u.id
-     ORDER BY r.created_at DESC`,
-    (err, results) => {
-      if (err) return res.status(500).json({ message: "Failed to fetch requests", error: err.message });
-      res.json(results);
-    }
-  );
-});
-
-router.put("/requests/:id/status", (req, res) => {
-  const { status } = req.body;
-  const reqId = parseInt(req.params.id);
-  db.query("UPDATE requests SET status = ? WHERE id = ?", [status, reqId], (err) => {
-    if (err) return res.status(500).json({ message: "Failed to update status", error: err.message });
-    if (status === "accepted") {
-      db.query("SELECT id FROM schedules WHERE request_id = ?", [reqId], (err2, existing) => {
-        if (err2 || existing.length > 0) return;
-        db.query(
-          `INSERT INTO schedules (request_id,staff_id,area,collection_date,status,type,location,pickup_time,citizen_name,created_at)
-           SELECT r.id,r.assigned_to,r.location,COALESCE(r.pickup_date,DATE_ADD(CURDATE(),INTERVAL 1 DAY)),'pending',r.type,r.location,r.pickup_time,u.name,NOW()
-           FROM requests r LEFT JOIN users u ON r.user_id=u.id WHERE r.id=?`,
-          [reqId],
-          (err3) => { if (err3) console.error("⚠️ Schedule insert error:", err3.message); }
-        );
-      });
-    }
-    res.json({ message: "Status updated successfully" });
-  });
-});
-
-/* ══════════════════════════════════════════════
-   CITIZENS
-   ══════════════════════════════════════════════ */
-router.get("/citizens", (req, res) => {
-  db.query(
     "SELECT id, name, email, phone, ward, image, created_at FROM users WHERE role='citizen' ORDER BY created_at DESC",
     (err, results) => {
       if (err) return res.status(500).json({ message: "Failed to fetch citizens", error: err.message });
@@ -133,7 +87,7 @@ router.get("/citizens", (req, res) => {
 });
 
 /* ══════════════════════════════════════════════
-   STAFF LIST (for GPS tracking)
+   GET /api/admin/staff
    ══════════════════════════════════════════════ */
 router.get("/staff", (req, res) => {
   db.query(
@@ -237,8 +191,6 @@ router.delete("/fines/:id", (req, res) => {
 
 /* ══════════════════════════════════════════════
    GPS TRACKING
-   Staff POST their location → /api/admin/gps
-   Admin GET all staff locations → /api/admin/gps
    ══════════════════════════════════════════════ */
 const ensureGpsTable = (cb) => {
   db.query(
@@ -248,8 +200,7 @@ const ensureGpsTable = (cb) => {
       lng        DOUBLE NOT NULL,
       updated_at DATETIME NOT NULL,
       FOREIGN KEY (staff_id) REFERENCES users(id) ON DELETE CASCADE
-    )`,
-    cb
+    )`, cb
   );
 };
 
@@ -257,7 +208,6 @@ router.post("/gps", (req, res) => {
   const { staff_id, lat, lng } = req.body;
   if (!staff_id || lat == null || lng == null)
     return res.status(400).json({ message: "staff_id, lat, lng required" });
-
   const upsert = () => db.query(
     `INSERT INTO staff_locations (staff_id, lat, lng, updated_at) VALUES (?,?,?,NOW())
      ON DUPLICATE KEY UPDATE lat=VALUES(lat), lng=VALUES(lng), updated_at=NOW()`,
@@ -267,7 +217,6 @@ router.post("/gps", (req, res) => {
       res.json({ message: "Location updated" });
     }
   );
-
   ensureGpsTable((e) => { if (e) return res.status(500).json({ message: "Table error" }); upsert(); });
 });
 
@@ -284,7 +233,5 @@ router.get("/gps", (req, res) => {
     );
   });
 });
-
-
 
 export default router;

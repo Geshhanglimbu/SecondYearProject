@@ -299,7 +299,7 @@ export default function AdminDashboard() {
   const [showFineModal, setShowFineModal]       = useState(false);
   const [pfSearch, setPfSearch]     = useState("");
   const [pfTab, setPfTab]           = useState("all");
-
+  const [assignStaff, setAssignStaff] = useState({}); // tracks selected staff per request
   const itemsPerPage = 10;
 
   const showToast = (msg, type = "success") => setToast({ msg, type });
@@ -358,17 +358,22 @@ export default function AdminDashboard() {
   }, [fetchGPS]);
 
   /* ── Request actions ── */
-  const updateStatus = async (id, status) => {
-    try {
-      await fetch(`${BASE}/api/admin/requests/${id}/status`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      setComplaints(prev => prev.map(c => c.id === id ? { ...c, status } : c));
-      showToast(`Request ${status} successfully!`);
-    } catch { showToast("Failed to update request", "error"); }
-  };
-
+ 
+const updateStatus = async (id, status) => {
+  const assigned_staff_id = assignStaff[id] || null;
+  if (status === "accepted" && !assigned_staff_id) {
+    showToast("Please select a staff member to assign!", "error");
+    return;
+  }
+  try {
+    await fetch(`${BASE}/api/admin/requests/${id}/status`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, assigned_staff_id }),
+    });
+    setComplaints(prev => prev.map(c => c.id === id ? { ...c, status } : c));
+    showToast(`Request ${status} successfully!`);
+  } catch { showToast("Failed to update request", "error"); }
+};
   /* ── Payment actions ── */
   const createPayment = async (form) => {
     try {
@@ -668,11 +673,28 @@ export default function AdminDashboard() {
                               <td><span className={`adm-status-badge ${getStatusClass(c.status)}`}>{getStatusLabel(c.status)}</span></td>
                               <td>
                                 {s === "pending" && (
-                                  <div className="adm-action-btns">
-                                    <button className="adm-btn-accept"  onClick={() => updateStatus(c.id,"accepted")}> Accept</button>
-                                    <button className="adm-btn-decline" onClick={() => updateStatus(c.id,"declined")}> Decline</button>
+                                <div className="adm-action-btns" style={{ flexDirection: "column", gap: "6px" }}>
+                                  {/* Staff assignment dropdown */}
+                                  <select
+                                    style={{
+                                      padding: "4px 8px", borderRadius: "6px",
+                                      border: "1px solid #d1d5db", fontSize: "12px",
+                                      background: "#f9fafb", cursor: "pointer"
+                                    }}
+                                    value={assignStaff[c.id] || ""}
+                                    onChange={e => setAssignStaff(prev => ({ ...prev, [c.id]: e.target.value }))}
+                                  >
+                                    <option value="">Assign staff…</option>
+                                    {staffList.map(st => (
+                                      <option key={st.id} value={st.id}>{st.name}</option>
+                                    ))}
+                                  </select>
+                                  <div style={{ display: "flex", gap: "6px" }}>
+                                    <button className="adm-btn-accept"  onClick={() => updateStatus(c.id, "accepted")}>✓ Accept</button>
+                                    <button className="adm-btn-decline" onClick={() => updateStatus(c.id, "declined")}>✕ Decline</button>
                                   </div>
-                                )}
+                                </div>
+                              )}
                                 {(s === "accepted" || s === "rejected" || s === "declined") && (
                                   <button className="adm-btn-reopen" onClick={() => updateStatus(c.id,"pending")}>↺ Reopen</button>
                                 )}

@@ -13,11 +13,12 @@ import fineRoutes      from "./routes/fineRoutes.js";
 import feedbackRoutes  from "./routes/feedbackRoutes.js";
 import profileRoutes   from "./routes/profileRoute.js";
 import staffRoutes     from "./routes/Staffroutes.js";
-import adminRoutes     from "./routes/adminRoutes.js";   // ← ADD THIS
+import adminRoutes     from "./routes/adminRoutes.js"; 
 import { db, runMigrations }    from "./config/db.js";
 import { runStaffMigrations }   from "./config/staffmigrations.js";
 import leaderboardRoutes from "./routes/Leaderboardroutes.js";
-// ...
+
+
 
 
 // ── Ensure uploads folder exists ──
@@ -76,6 +77,25 @@ app.get("/api/debug/payments/:userId", (req, res) => {
       });
     }
   );
+});
+// Geocode proxy — avoids CORS & rate limit issues
+app.get("/api/geocode", async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.status(400).json({ error: "Missing query" });
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`;
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "EcoConnect/1.0 (your@email.com)", // Nominatim requires this
+        "Accept-Language": "en",
+      },
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Geocode failed" });
+  }
 });
 
 app.listen(5001, () => console.log("Server running on port 5001"));

@@ -6,22 +6,27 @@ const router = express.Router();
 /* ══════════════════════════════════════════════
    GET /api/staff/schedules
    ══════════════════════════════════════════════ */
+// GET /api/staff/schedules  — add staff_id filter
 router.get("/schedules", (req, res) => {
+  const { staff_id } = req.query;
+  console.log("📋 Fetching schedules for staff_id:", staff_id);
+
   const sql = `
-    SELECT
-      s.id, s.request_id, s.staff_id, s.area,
+    SELECT s.id, s.request_id, s.staff_id, s.area,
       s.collection_date, s.status, s.type,
       s.location, s.pickup_time, s.citizen_name,
       s.staff_name, s.completed_at, s.created_at
     FROM schedules s
     ORDER BY s.collection_date DESC
   `;
-  db.query(sql, (err, results) => {
+
+  db.query(sql, [], (err, results) => {
     if (err) {
-      console.error("❌ schedules query error:", err.message);
+      console.error("❌ schedules error:", err.message);
       return res.status(500).json({ message: "Failed to fetch schedules", error: err.message });
     }
-    console.log(`✅ Schedules fetched: ${results.length} rows`);
+    console.log(`✅ Total schedules in DB: ${results.length}`);
+    console.log("Staff IDs in schedules:", results.map(r => r.staff_id));
     res.json(results);
   });
 });
@@ -36,87 +41,51 @@ router.put("/schedules/:id", (req, res) => {
   const scheduleId = parseInt(req.params.id);
   const completedAt = status === "completed" ? new Date() : null;
 
-  // Step 1 — update the schedule row
   db.query(
     `UPDATE schedules SET status = ?, staff_name = ?, completed_at = ? WHERE id = ?`,
     [status, staff_name || "Staff", completedAt, scheduleId],
     (err) => {
-      if (err) {
-        console.error("❌ schedule update error:", err.message);
-        return res.status(500).json({ message: "Failed to update schedule", error: err.message });
-      }
+      if (err) return res.status(500).json({ message: "Failed to update schedule", error: err.message });
 
-      // Step 2 — fetch the request_id linked to this schedule
-      db.query("SELECT request_id FROM schedules WHERE id = ?", [scheduleId], (err2, rows) => {
-        if (err2 || !rows.length) {
-          console.log("⚠️ Could not find request_id for schedule", scheduleId);
-          return res.json({ message: "Schedule updated (no linked request)" });
-        }
+      db.query("SELECT request_id, citizen_name, location FROM schedules WHERE id = ?", [scheduleId], (err2, rows) => {
+        if (err2 || !rows.length) return res.json({ message: "Schedule updated" });
 
         const requestId = rows[0].request_id;
 
-        if (!requestId) {
-          // No request_id stored — schedule was created manually, nothing to sync
-          return res.json({ message: "Schedule updated (manually created, no request link)" });
+        // ✅ If request_id exists, sync directly
+        if (requestId) {
+          syncRequestStatus(requestId, status, staff_name);
+          return res.json({ message: "Schedule updated successfully" });
         }
 
-        // Step 3 — sync requests.status so citizen sees it
-        if (status === "completed") {
-          db.query(
-            `UPDATE requests SET status = 'completed', completed_by = ? WHERE id = ?`,
-            [staff_name || "Staff", requestId],
-            (err3) => {
-              if (err3) console.error("⚠️ Request sync error:", err3.message);
-              else      console.log(`✅ Request ${requestId} marked completed by ${staff_name}`);
+        // ✅ Fallback: find request by citizen_name + location if request_id is NULL
+        db.query(
+          `SELECT id FROM requests WHERE location = ? ORDER BY created_at DESC LIMIT 1`,
+          [rows[0].location],
+          (err3, reqRows) => {
+            if (!err3 && reqRows.length > 0) {
+              syncRequestStatus(reqRows[0].id, status, staff_name);
             }
-          );
-        }
-
-        if (status === "pending") {
-          // Staff reopened — roll request back to accepted
-          db.query(
-            `UPDATE requests SET status = 'accepted', completed_by = NULL WHERE id = ?`,
-            [requestId],
-            (err3) => { if (err3) console.error("⚠️ Reopen sync error:", err3.message); }
-          );
-        }
-
-        if (status === "in_progress") {
-          // Optional: reflect in-progress on the request too
-          db.query(
-            `UPDATE requests SET status = 'in_progress' WHERE id = ?`,
-            [requestId],
-            (err3) => { if (err3) console.error("⚠️ In-progress sync error:", err3.message); }
-          );
-        }
-
-        res.json({ message: "Schedule updated successfully" });
+            return res.json({ message: "Schedule updated successfully" });
+          }
+        );
       });
     }
   );
 });
 
-/* ══════════════════════════════════════════════
-   GET /api/staff/debug
-   http://localhost:5001/api/staff/debug
-   ══════════════════════════════════════════════ */
-router.get("/debug", (req, res) => {
-  db.query(
-    `SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE
-     FROM INFORMATION_SCHEMA.COLUMNS
-     WHERE TABLE_SCHEMA = DATABASE()
-       AND TABLE_NAME IN ('schedules','requests','users')
-     ORDER BY TABLE_NAME, ORDINAL_POSITION`,
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      const grouped = {};
-      rows.forEach(r => {
-        if (!grouped[r.TABLE_NAME]) grouped[r.TABLE_NAME] = [];
-        grouped[r.TABLE_NAME].push(`${r.COLUMN_NAME} (${r.DATA_TYPE})`);
-      });
-      res.json(grouped);
-    }
-  );
-});
-
+// Helper function to sync request status
+function syncRequestStatus(requestId, status, staff_name) {
+  if (status === "completed") {
+    db.query(
+      `UPDATE requests SET status = 'completed', completed_by = ? WHERE id = ?`,
+      [staff_name || "Staff", requestId],
+      (err) => { if (err) console.error("⚠️ Request sync error:", err.message); }
+    );
+  } else if (status === "pending") {
+    db.query(`UPDATE requests SET status = 'accepted', completed_by = NULL WHERE id = ?`, [requestId]);
+  } else if (status === "in_progress") {
+    db.query(`UPDATE requests SET status = 'in_progress' WHERE id = ?`, [requestId]);
+  }
+}
 export default router;
