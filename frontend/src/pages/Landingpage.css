@@ -81,7 +81,7 @@
   font-family: 'Fraunces', serif;
   font-size: 20px;
   font-weight: 700;
-  color: var(--green);
+  color:#a2afa9b3;
   letter-spacing: -0.3px;
 }
 
@@ -241,7 +241,7 @@
 .lp-hero-line1 {
   font-size: clamp(44px, 7vw, 78px);
   font-weight: 800;
-  color: #1213130d;
+  color: #a2afa9b3;
   line-height: 1.05;
   letter-spacing: -1.5px;
 }
@@ -409,7 +409,7 @@
   font-family: 'Playfair Display', serif;
   font-size: 36px;
   font-weight: 800;
-  color: #f3f4f6;
+  color: #68b683;
   letter-spacing: -1px;
   line-height: 1;
 }
@@ -446,7 +446,7 @@
   font-family: 'Playfair Display', serif;
   font-size: clamp(30px, 4vw, 50px);
   font-weight: 800;
-  color: #f3f4f6;
+  color: #a2afa9b3;
   line-height: 1.15;
   letter-spacing: -0.8px;
   margin-bottom: 16px;
@@ -507,13 +507,13 @@
 .lp-feat-title {
   font-size: 16.5px;
   font-weight: 600;
-  color: #f3f4f6;
+  color: #859d8ae7;
   margin-bottom: 10px;
   letter-spacing: -0.2px;
 }
 .lp-feat-desc {
   font-size: 13.5px;
-  color: var(--muted);
+  color:rgb(107, 147, 115);
   line-height: 1.7;
   font-weight: 300;
 }
@@ -566,7 +566,7 @@
 .lp-how-title {
   font-size: 15px;
   font-weight: 600;
-  color: #f3f4f6;
+  color: #f8fdfaef;
   margin-bottom: 10px;
 }
 .lp-how-desc {
@@ -690,7 +690,7 @@
   font-family: 'Playfair Display', serif;
   font-size: clamp(26px, 3.5vw, 44px);
   font-weight: 800;
-  color: #f3f4f6;
+  color: #86a090;
   line-height: 1.2;
   letter-spacing: -0.5px;
   margin-bottom: 12px;

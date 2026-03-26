@@ -194,7 +194,7 @@ export default function LandingPage() {
         <div className="lp-hero-inner">
           <div className="lp-hero-badge">
             <span className="lp-badge-dot"></span>
-            Smart Waste Management · Kathmandu Valley
+            Smart Waste Management · Nepal
           </div>
 
           <h1 className="lp-hero-title">
@@ -290,7 +290,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* ══ COMMUNITY / TESTIMONIALS ══ */}
       <section className="lp-testimonials" id="community">
         <div className="lp-section-inner">
@@ -351,9 +350,7 @@ export default function LandingPage() {
         <div className="lp-footer-inner">
           <div className="lp-footer-brand">
             <div className="lp-logo-mark lp-logo-sm">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
-              </svg>
+              ♻️
             </div>
             <span className="lp-brand-name">EcoConnect</span>
           </div>

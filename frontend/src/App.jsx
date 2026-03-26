@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom";
-import LandingPage from "./pages/citizenPage/Landingpage.jsx";
+import LandingPage from "./pages/Landingpage.jsx";
 import ProfilePage from "./pages/citizenPage/ProfilePage.jsx";
 import Login from "./pages/login.jsx";
 import Register from "./pages/Register.jsx";
