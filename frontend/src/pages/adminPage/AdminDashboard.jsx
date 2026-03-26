@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
+import AdminFeedbackPanel from "./AdminFeedbackPanel";      
 
 const BASE = "http://localhost:5001";
 
@@ -497,6 +498,7 @@ export default function AdminDashboard() {
     { key: "payments",   icon: "💳", label: "Payments",  badge: unpaidPayments || null },
     { key: "fines",      icon: "⚠️", label: "Fines",     badge: unpaidFines || null },
     { key: "gps",        icon: "📡", label: "GPS Track", badge: onlineStaff || null },
+    { key: "feedback",    icon: "✉️", label: "Feedback" , badge: null },
     { key: "citizens",   icon: "👤", label: "Citizens" },
   ];
 
@@ -817,6 +819,15 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+                {activeMenu === "feedback" && (
+        <div className="adm-section">
+            <div className="adm-section-head">
+            <h2 className="adm-section-title">💬 Citizen Feedback</h2>
+            <p className="adm-section-sub">Review, respond and manage all citizen feedback</p>
+            </div>
+            <AdminFeedbackPanel showToast={showToast} />
+        </div>
+        )}
 
           {/* ── GPS TRACKING ── */}
           {activeMenu === "gps" && (

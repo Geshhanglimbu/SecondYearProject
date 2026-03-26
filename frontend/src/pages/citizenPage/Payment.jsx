@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import "./Payment.css";
 
+
 const Payment = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -411,10 +412,11 @@ const Payment = () => {
                         </div>
                       ))}
                     </div>
+                    {/* https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=EcoConnect-Payment-${getAccountId()}-Rs${GRAND_TOTAL}  qr of this website*/} 
                     {selectedGateway === "qr" && (
                       <div className="pay-qr-section">
                         <div className="pay-qr-left">
-                          <div className="pay-qr-box"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=EcoConnect-Payment-${getAccountId()}-Rs${GRAND_TOTAL}`} alt="QR Code" /></div>
+                          <div className="pay-qr-box"><img src={'../../../../image/QR image.jpeg'} alt="QR Code" /></div>
                           <div className="pay-qr-ready">🟢 READY TO SCAN</div>
                         </div>
                         <div className="pay-qr-steps">
