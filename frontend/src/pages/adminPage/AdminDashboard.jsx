@@ -743,7 +743,7 @@ export default function AdminDashboard() {
                           <td>
                             <div className="adm-action-btns">
                               {p.status === "unpaid" && (
-                                <button className="adm-btn-accept" onClick={() => markPaymentPaid(p.id)}>✓ Mark Paid</button>
+                                <button className="adm-btn-accept" onClick={() => markPaymentPaid(p.id)}>✓ Paid</button>
                               )}
                               <button className="adm-btn-decline" onClick={() => deletePayment(p.id)}>🗑</button>
                             </div>
