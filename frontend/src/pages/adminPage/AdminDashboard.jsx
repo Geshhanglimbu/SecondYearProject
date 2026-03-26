@@ -903,7 +903,16 @@ export default function AdminDashboard() {
               ))}
             </ul>
           </div> */}
+          <div className="adm-footer-col">
+            <h4>Company</h4>
+            <ul>
+              {["About Us","Privacy Policy","Terms of Service","Help Center","Contact"].map(l => (
+                <li key={l}><a href="#">{l}</a></li>
+              ))}
+            </ul>
+          </div>
           <div className="adm-footer-col"><h4>Contact</h4><div className="adm-footer-contact"><div>✉️ info@ecoconnect.com</div><div>📞 +977 01-4XXXXXX</div><div>📍 Kathmandu, Nepal</div></div></div>
+
         </div>
         <div className="adm-footer-bottom"><span>© 2025 EcoConnect. All rights reserved.</span></div>
       </footer>
