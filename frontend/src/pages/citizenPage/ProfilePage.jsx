@@ -126,6 +126,7 @@ export default function ProfilePage() {
     { id:"complaints", icon:"⚑", label:"Complaints",  path:"/complaints"  },
     { id:"payment",    icon:"₨", label:"Payments",    path:"/payment"     },
     { id:"feedback",   icon:"✦", label:"Feedback",    path:"/feedback"    },
+    { id:"leaderboard", icon:"🏆", label:"Leaderboard", path:"/leaderboard" },
     { id:"profile",    icon:"◎", label:"Profile",     path:"/profile"     },
   ];
 

@@ -2,7 +2,7 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-:root {
+.fb-layout {
   --green-900: #14532d;
   --green-800: #15803d;
   --green-600: #16a34a;
@@ -24,7 +24,7 @@
   --radius-sm: 10px;
 }
 
-body { font-family: 'Outfit', sans-serif; background: var(--gray-50); color: var(--gray-900); }
+.fb-layout { font-family: 'Outfit', sans-serif; background: var(--gray-50); color: var(--gray-900); }
 
 /* ── LAYOUT ── */
 .fb-layout { min-height: 100vh; display: flex; flex-direction: column; }

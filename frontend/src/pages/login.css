@@ -2,7 +2,7 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-:root {
+.login-page {
   --green: #2ecc71;
   --green-dark: #27ae60;
   --green-light: #eafaf1;
@@ -13,10 +13,11 @@
   --white: #ffffff;
 }
 
-html, body {
-  height: 100%;
+.login-page {
+  min-height: 100vh;
   font-family: 'Outfit', sans-serif;
 }
+html { height: 100%; }
 
 /* ---- PAGE LAYOUT ---- */
 .login-page {
@@ -345,4 +346,14 @@ html, body {
   .login-right { padding: 24px 16px; }
   .login-card { padding: 28px 20px; }
   .left-heading { font-size: 36px; }
+}
+.back-home {
+  padding: 10px 14px; font-size: 10px; color: var(--text-light);
+  cursor: pointer; transition: color 0.2s; border-top: 1px solid var(--border); padding-top: 14px 
+}
+
+.back-home:hover {
+  color: #178d42; /* green hover */
+  text-decoration: underline;
+  cursor: pointer;
 }

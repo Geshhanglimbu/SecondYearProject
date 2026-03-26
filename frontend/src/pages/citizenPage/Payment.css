@@ -2,7 +2,7 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-:root {
+.pay-page {
   --green: #2ecc71;
   --green-dark: #27ae60;
   --green-light: #eafaf1;
@@ -20,7 +20,7 @@
   --khalti: #5c2d91;
 }
 
-html, body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); }
+.pay-page { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); }
 
 /* ========================
    LOADING
@@ -52,7 +52,13 @@ html, body { font-family: 'Outfit', sans-serif; background: var(--bg); color: va
 .pay-nav-left { display: flex; align-items: center; gap: 20px; }
 .pay-logo { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .pay-logo-icon { font-size: 18px; background: linear-gradient(135deg, var(--green), var(--green-dark)); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(46,204,113,0.3); }
-.pay-logo-text { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+.pay-logo-text {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--green-dark);
+  letter-spacing: -0.3px;
+}
 
 .pay-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .pay-bc-link { color: var(--text-light); cursor: pointer; transition: color 0.2s; }

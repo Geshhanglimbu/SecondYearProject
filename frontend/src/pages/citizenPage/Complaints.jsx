@@ -4,17 +4,17 @@ import "./Complaints.css";
 
 export default function Complaints() {
   const navigate = useNavigate();
-  const [user, setUser]               = useState(null);
-  const [complaints, setComplaints]   = useState([]);
-  const [filtered, setFiltered]       = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [search, setSearch]           = useState("");
+  const [user, setUser]                 = useState(null);
+  const [complaints, setComplaints]     = useState([]);
+  const [filtered, setFiltered]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy]           = useState("date");
-  const [activeMenu, setActiveMenu]   = useState("complaints");
-  const [showModal, setShowModal]     = useState(false);
+  const [sortBy, setSortBy]             = useState("date");
+  const [activeMenu, setActiveMenu]     = useState("complaints");
+  const [showModal, setShowModal]       = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [successMsg, setSuccessMsg]   = useState("");
+  const [successMsg, setSuccessMsg]     = useState("");
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -63,7 +63,6 @@ export default function Complaints() {
     try {
       const res = await fetch(`http://localhost:5001/api/requests/${id}`, { method: "DELETE" });
       const data = await res.json();
-      console.log("Delete response:", data);
       setComplaints(prev => prev.filter(c => c.id !== id));
       setShowModal(false);
       setDeleteTarget(null);
@@ -78,9 +77,7 @@ export default function Complaints() {
   const handleDeleteAll = async () => {
     if (!user) return;
     try {
-      const res = await fetch(`http://localhost:5001/api/requests/all/${user.id}`, { method: "DELETE" });
-      const data = await res.json();
-      console.log("Delete all response:", data);
+      await fetch(`http://localhost:5001/api/requests/all/${user.id}`, { method: "DELETE" });
       setComplaints([]);
       setShowModal(false);
       setSuccessMsg("All requests deleted!");
@@ -98,13 +95,26 @@ export default function Complaints() {
       "  " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
   };
 
+  /* ── Status badge class ── */
   const getStatusClass = (status) => {
     const s = (status || "pending").toLowerCase();
-    if (s === "pending")   return "status-pending";
-    if (s === "completed") return "status-completed";
-    if (s === "resolved")  return "status-resolved";
-    if (s === "rejected")  return "status-rejected";
+    if (s === "completed")   return "status-completed";
+    if (s === "resolved")    return "status-resolved";
+    if (s === "rejected" || s === "declined") return "status-rejected";
+    if (s === "accepted")    return "status-accepted";
+    if (s === "in_progress") return "status-inprogress";
     return "status-pending";
+  };
+
+  /* ── Status label shown to citizen ── */
+  const getStatusLabel = (status) => {
+    const s = (status || "pending").toLowerCase();
+    if (s === "in_progress") return "In Progress";
+    if (s === "accepted")    return "Accepted";
+    if (s === "completed")   return "Completed ✓";
+    if (s === "resolved")    return "Resolved ✓";
+    if (s === "rejected" || s === "declined") return "Declined";
+    return "Pending";
   };
 
   const getTypeIcon = (type) => {
@@ -116,8 +126,9 @@ export default function Complaints() {
     return "🗑️";
   };
 
-  const pendingCount   = complaints.filter(c => (c.status || "pending").toLowerCase() === "pending").length;
-  const completedCount = complaints.filter(c => ["completed","resolved"].includes((c.status || "").toLowerCase())).length;
+  const pendingCount     = complaints.filter(c => (c.status || "pending").toLowerCase() === "pending").length;
+  const inProgressCount  = complaints.filter(c => (c.status || "").toLowerCase() === "in_progress").length;
+  const completedCount   = complaints.filter(c => ["completed","resolved"].includes((c.status || "").toLowerCase())).length;
 
   if (loading) return (
     <div className="complaints-loading">
@@ -131,9 +142,7 @@ export default function Complaints() {
 
       <nav className="complaints-navbar">
         <div className="nav-brand">
-          <div className="nav-logo">
-            ♻
-          </div>
+          <div className="nav-logo">♻</div>
           <span className="nav-title">EcoConnect</span>
         </div>
         <div className="nav-user">
@@ -155,8 +164,11 @@ export default function Complaints() {
               { key: "dashboard",  icon: "⊞", label: "Dashboard",  path: "/dashboard"   },
               { key: "newrequest", icon: "+",  label: "New Request", path: "/new-request" },
               { key: "complaints", icon: "⚑",  label: "Complaints", path: "/complaints"  },
-              { key: "payments",   icon: "💳",  label: "Payments",   path: "/payment"     },
+              { key: "payments",   icon: "💳", label: "Payments",   path: "/payment"     },
               { key: "feedback",   icon: "✦",  label: "Feedback",   path: "/Feedback"    },
+               { key: "leaderboard",   icon: "🏆",  label: "Leaderboard",   path: "/leaderboard"    },
+                { key: "profile",   icon: "👤",  label: "Profile",   path: "/profile"    },
+
             ].map(item => (
               <button
                 key={item.key}
@@ -187,6 +199,9 @@ export default function Complaints() {
               <div className="header-stats">
                 <span className="stat-chip stat-total">{complaints.length} Total</span>
                 <span className="stat-chip stat-pending">{pendingCount} Pending</span>
+                {inProgressCount > 0 && (
+                  <span className="stat-chip stat-inprogress">{inProgressCount} In Progress</span>
+                )}
                 <span className="stat-chip stat-done">{completedCount} Completed</span>
               </div>
             </div>
@@ -219,13 +234,13 @@ export default function Complaints() {
           <div className="filters-row">
             <div className="filter-group">
               <span className="filter-label">Filter by Status:</span>
-              {["all", "pending", "completed"].map(s => (
+              {["all", "pending", "accepted", "in_progress", "completed"].map(s => (
                 <button
                   key={s}
                   className={`filter-btn ${statusFilter === s ? "filter-active" : ""}`}
                   onClick={() => setStatusFilter(s)}
                 >
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {s === "in_progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
               ))}
             </div>
@@ -283,19 +298,28 @@ export default function Complaints() {
                       <span className="complaint-date">
                         <span className="meta-icon">🕐</span> {formatDate(c.created_at)}
                       </span>
+                      {/* Show who completed it if available */}
+                      {c.completed_by && (
+                        <span className="complaint-date">
+                          <span className="meta-icon">👷</span> Completed by {c.completed_by}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="complaint-card-right">
                     <span className={`status-badge ${getStatusClass(c.status)}`}>
-                      {c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : "Pending"}
+                      {getStatusLabel(c.status)}
                     </span>
-                    <button
-                      className="delete-btn"
-                      onClick={() => { setDeleteTarget(c.id); setShowModal(true); }}
-                      title="Delete this request"
-                    >
-                      🗑
-                    </button>
+                    {/* Only allow delete if not in progress or completed */}
+                    {!["in_progress","completed","resolved"].includes((c.status||"").toLowerCase()) && (
+                      <button
+                        className="delete-btn"
+                        onClick={() => { setDeleteTarget(c.id); setShowModal(true); }}
+                        title="Delete this request"
+                      >
+                        🗑
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -316,7 +340,7 @@ export default function Complaints() {
               </div>
               <span className="footer-brand-name">EcoConnect</span>
             </div>
-            <p className="footer-tagline">Connecting communities for a greener future. Simplify your waste management and boost your eco-score.</p>
+            <p className="footer-tagline">Connecting communities for a greener future.</p>
             <p className="footer-copy">© 2025 EcoConnect. All rights reserved.</p>
           </div>
           <div className="footer-links">
@@ -339,7 +363,6 @@ export default function Complaints() {
         </div>
       </footer>
 
-      {/* DELETE CONFIRM MODAL */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>

@@ -73,7 +73,10 @@ const NewRequest = () => {
     formData.append("location", location);
     images.forEach((img) => formData.append("files", img));
     try {
-      const res = await fetch("http://localhost:5001/api/submit-request", { method: "POST", body: formData });
+      const res = await fetch("http://localhost:5001/api/requests/submit-request", {
+  method: "POST",
+  body: formData
+      });
       
       const data = await res.json();
       console.log("Response:", data); 
@@ -129,7 +132,7 @@ const NewRequest = () => {
               <span>+</span><span>New Request</span>
             </div>
             <div className="nr-menu-item" onClick={() => navigate("/complaints")}>
-              <span>💬</span><span>Complaints</span>
+              <span>⚑</span><span>Complaints</span>
             </div>
             {/* <div className="nr-menu-item" onClick={() => navigate("/schedule")}>
               <span>📅</span><span>Schedule</span>
@@ -137,9 +140,17 @@ const NewRequest = () => {
             <div className="nr-menu-item" onClick={() => navigate("/payment")}>
               <span>💳</span><span>Payment</span>
             </div>
-            <div className="nr-menu-item" onClick={() => navigate("/Feedback")}>
-              <span>✦</span><span>Feedback</span>
-            </div>
+              <div className="nr-menu-item" onClick={() => navigate("/Feedback")}>
+                <span>✦</span><span>Feedback</span>
+              </div>
+              <div className="nr-menu-item" onClick={() => navigate("/leaderboard")}>
+                <span>🏆</span><span>Leaderboard</span>
+              </div>
+              <div className="nr-menu-item" onClick={() => navigate("/profile")}>
+                <span>👤</span><span>Profile</span>
+              </div>
+
+
           </nav>
           <div className="nr-quote-box">
             <p>"The easiest waste to manage is the waste we never create."</p>
