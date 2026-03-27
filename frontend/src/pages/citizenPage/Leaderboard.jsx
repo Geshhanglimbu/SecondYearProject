@@ -123,9 +123,9 @@ export default function Leaderboard() {
     { key: "dashboard",   icon: "⊞", label: "Dashboard",   path: "/dashboard"   },
     { key: "newrequest",  icon: "+",  label: "New Request",  path: "/new-request" },
     { key: "complaints",  icon: "⚑",  label: "Complaints",  path: "/complaints"  },
-    { key: "leaderboard", icon: "🏆", label: "Leaderboard", path: "/leaderboard" },
     { key: "payments",    icon: "💳", label: "Payments",    path: "/payment"     },
     { key: "feedback",    icon: "✦",  label: "Feedback",    path: "/Feedback"    },
+     { key: "leaderboard", icon: "🏆", label: "Leaderboard", path: "/leaderboard" },
      { key: "profile",   icon: "👤",  label: "Profile",   path: "/profile"    },
   ];
 
