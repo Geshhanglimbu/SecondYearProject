@@ -12,7 +12,13 @@ import scheduleRoutes  from "./routes/scheduleRoutes.js";
 import fineRoutes      from "./routes/fineRoutes.js";
 import feedbackRoutes  from "./routes/feedbackRoutes.js";
 import profileRoutes   from "./routes/profileRoute.js";
-import { db, runMigrations } from "./config/db.js";
+import staffRoutes     from "./routes/Staffroutes.js";
+import adminRoutes     from "./routes/adminRoutes.js"; 
+import { db, runMigrations }    from "./config/db.js";
+import { runStaffMigrations }   from "./config/staffmigrations.js";
+import leaderboardRoutes from "./routes/Leaderboardroutes.js";
+
+
 
 
 // ── Ensure uploads folder exists ──
@@ -21,6 +27,7 @@ if (!fs.existsSync("uploads")) {
   console.log("uploads folder created");
 }
 
+// ── App init  (must come BEFORE any app.use / app.get) ──
 const app = express();
 
 app.use(cors({
@@ -37,18 +44,21 @@ db.connect((err) => {
   if (err) throw err;
   console.log("MySQL Connected");
   runMigrations(db);
+  runStaffMigrations(db);
 });
 
 // ── Mount routes ──
-app.use("/",                authRoutes);
-app.use("/api/payments",    paymentRoutes);
-app.use("/api/requests",    requestRoutes);
-app.use("/api/complaints",  complaintRoutes);
-app.use("/schedules",       scheduleRoutes);
-app.use("/api/fines",       fineRoutes);
-app.use("/api/feedback",    feedbackRoutes);
-app.use("/api/citizen",     profileRoutes);
-
+app.use("/",               authRoutes);
+app.use("/api/payments",   paymentRoutes);
+app.use("/api/requests",   requestRoutes);
+app.use("/api/complaints", complaintRoutes);
+app.use("/schedules",      scheduleRoutes);
+app.use("/api/fines",      fineRoutes);
+app.use("/api/feedback",   feedbackRoutes);
+app.use("/api/citizen",    profileRoutes);
+app.use("/api/staff",      staffRoutes);
+app.use("/api/admin",      adminRoutes);  
+app.use("/api/leaderboard", leaderboardRoutes);
 // ── Health check ──
 app.get("/test", (req, res) => res.json({ message: "Backend is working!" }));
 
@@ -67,6 +77,25 @@ app.get("/api/debug/payments/:userId", (req, res) => {
       });
     }
   );
+});
+// Geocode proxy — avoids CORS & rate limit issues
+app.get("/api/geocode", async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.status(400).json({ error: "Missing query" });
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`;
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "EcoConnect/1.0 (your@email.com)", // Nominatim requires this
+        "Accept-Language": "en",
+      },
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Geocode failed" });
+  }
 });
 
 app.listen(5001, () => console.log("Server running on port 5001"));

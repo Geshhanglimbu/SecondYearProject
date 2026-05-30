@@ -153,6 +153,8 @@ export default function Feedback() {
     { key: "complaints", icon: "⚑",  label: "Complaints", path: "/complaints"  },
     { key: "payment",    icon: "💳",  label: "Payments",   path: "/payment"     },
     { key: "feedback",   icon: "💬", label: "Feedback",   path: "/feedback"    },
+     { key: "leaderboard",   icon: "🏆",  label: "Leaderboard",   path: "/leaderboard"    },
+      { key: "profile",   icon: "👤",  label: "Profile",   path: "/profile"    },
   ];
 
   return (

@@ -44,6 +44,7 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+    
   };
 
   return (
@@ -107,7 +108,9 @@ const Login = () => {
               >
                 {r === "citizen" ? "🏘 Citizen" : r === "admin" ? "🛡 Admin" : "👷 Staff"}
               </button>
+              
             ))}
+            
           </div>
 
           {/* ERROR */}
@@ -164,12 +167,16 @@ const Login = () => {
             Don't have an account?{" "}
             <Link to="/register">Register here</Link>
           </div>
-
+          <div className="back-home" onClick={() => navigate("/")}>
+            ← Back to Home
+          </div>
         </div>
+       
       </div>
 
     </div>
   );
 };
+
 
 export default Login;

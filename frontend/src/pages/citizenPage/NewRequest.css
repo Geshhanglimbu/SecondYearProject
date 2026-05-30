@@ -4,7 +4,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 /* ---- VARIABLES ---- */
-:root {
+.nr-page {
   --green: #2ecc71;
   --green-dark: #27ae60;
   --green-light: #eafaf1;
@@ -16,7 +16,7 @@
   --bg: #f7f9f7;
 }
 
-body {
+.nr-page {
   font-family: 'DM Sans', sans-serif;
   background: var(--bg);
   color: var(--text);
@@ -126,7 +126,7 @@ body {
 }
 
 .nr-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Fraunces', serif;
   font-size: 28px;
   font-weight: 700;
 }

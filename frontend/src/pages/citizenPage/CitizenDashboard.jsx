@@ -11,6 +11,8 @@ const CitizenDashboard = () => {
   const [pendingBills, setPendingBills] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [leaderboardData, setLeaderboardData] = useState(null);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -18,6 +20,7 @@ const CitizenDashboard = () => {
     const parsedUser = JSON.parse(savedUser);
     setUser(parsedUser);
     fetchDashboardData(parsedUser.id);
+    fetchLeaderboardPreview(parsedUser.id);
   }, []);
 
   // Live clock
@@ -40,10 +43,25 @@ const CitizenDashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    navigate("/login");
+  const fetchLeaderboardPreview = async (userId) => {
+    try {
+      const [meRes, topRes] = await Promise.all([
+        fetch(`http://localhost:5001/api/leaderboard/me/${userId}`),
+        fetch(`http://localhost:5001/api/leaderboard/top`),
+      ]);
+      const me  = await meRes.json();
+      const top = await topRes.json();
+      setLeaderboardData({ me, top: top.slice(0, 5) });
+    } catch (err) {
+      console.error("Leaderboard preview error:", err);
+    } finally {
+      setLeaderboardLoading(false);
+    }
   };
+    const handleLogout = () => {
+  localStorage.removeItem("user");
+  navigate("/login");
+};
 
   const getEcoRank = (points) => {
     if (points >= 5000) return { rank: "A+++", color: "#f59e0b", desc: "Legendary Eco Champion", icon: "🏆" };
@@ -76,6 +94,7 @@ const CitizenDashboard = () => {
     { id: "payment",    icon: "💳",  label: "Payments",    path: "/payment",
       badge: pendingBills > 0 ? pendingBills : null },
     { id: "feedback",   icon: "✦",  label: "Feedback",    path: "/feedback"     },
+    { id: "leaderboard", icon: "🏆", label: "Leaderboard", path: "/leaderboard" },
     { id: "profile", icon: "◎", label: "Profile", path: "/profile" },
   ];
 
@@ -337,6 +356,154 @@ const CitizenDashboard = () => {
                   </div>
 
               </div>
+
+              {/* ── LEADERBOARD PREVIEW ── */}
+              <div className="db-section-head" style={{ marginTop: "2.5rem" }}>
+                <h2 className="db-section-title">🏆 Community Leaderboard</h2>
+                <div className="db-section-line"></div>
+              </div>
+
+              <div className="db-lb-preview-container">
+                {/* Left: My Rank Card */}
+                <div className="db-lb-my-rank">
+                  <div className="db-lb-my-rank-bg"></div>
+                  <div className="db-lb-my-rank-inner">
+                    <div className="db-lb-my-avatar">
+                      {user?.image
+                        ? <img src={`http://localhost:5001/uploads/${user.image}`} alt="avatar" />
+                        : <span>{user?.name?.[0]?.toUpperCase() || "U"}</span>}
+                    </div>
+                    <div className="db-lb-my-name">{user?.name?.split(" ")[0] || "You"}</div>
+                    <div className="db-lb-my-tag">Your Standing</div>
+
+                    <div className="db-lb-my-rank-badge">
+                      <span className="db-lb-rank-hash">#</span>
+                      <span className="db-lb-rank-num">
+                        {leaderboardLoading ? "—" : leaderboardData?.me?.rank ?? "—"}
+                      </span>
+                    </div>
+
+                    <div className="db-lb-my-pts-row">
+                      <span className="db-lb-my-pts-num">
+                        {leaderboardLoading ? "—" : leaderboardData?.me?.points?.toLocaleString() ?? "0"}
+                      </span>
+                      <span className="db-lb-my-pts-label">points</span>
+                    </div>
+
+                    {leaderboardData?.me?.level && (
+                      <div className="db-lb-my-level" style={{ color: leaderboardData.me.level.color }}>
+                        {leaderboardData.me.level.icon} {leaderboardData.me.level.name}
+                      </div>
+                    )}
+
+                    {/* Progress bar */}
+                    {leaderboardData?.me && (
+                      <div className="db-lb-progress-wrap">
+                        <div className="db-lb-progress-track">
+                          <div
+                            className="db-lb-progress-fill"
+                            style={{
+                              width: `${leaderboardData.me.progress ?? 0}%`,
+                              background: leaderboardData.me.level?.color || "#10b981",
+                            }}
+                          ></div>
+                        </div>
+                        <div className="db-lb-progress-label">
+                          {leaderboardData.me.progress ?? 0}% to{" "}
+                          {leaderboardData.me.nextLevel?.name || "Max Level"}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Badges row */}
+                    {leaderboardData?.me?.badges?.length > 0 && (
+                      <div className="db-lb-badges-row">
+                        {leaderboardData.me.badges.slice(0, 4).map((b) => (
+                          <span key={b.id} className="db-lb-badge-chip" title={b.desc}>
+                            {b.icon}
+                          </span>
+                        ))}
+                        {leaderboardData.me.badges.length > 4 && (
+                          <span className="db-lb-badge-more">+{leaderboardData.me.badges.length - 4}</span>
+                        )}
+                      </div>
+                    )}
+
+                    <button className="db-lb-go-btn" onClick={() => navigate("/leaderboard")}>
+                      View Full Leaderboard
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
+                        <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right: Top 5 List */}
+                <div className="db-lb-top-list">
+                  <div className="db-lb-top-header">
+                    <span className="db-lb-top-title">Top Citizens This Month</span>
+                    <button className="db-lb-top-see-all" onClick={() => navigate("/leaderboard")}>
+                      See all →
+                    </button>
+                  </div>
+
+                  {leaderboardLoading ? (
+                    <div className="db-lb-skeleton-wrap">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="db-lb-skeleton-row" style={{ animationDelay: `${i * 0.1}s` }}></div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="db-lb-rows">
+                      {(leaderboardData?.top || []).map((citizen, i) => {
+                        const isMe = citizen.user_id === user?.id;
+                        const medals = ["🥇", "🥈", "🥉"];
+                        return (
+                          <div key={citizen.user_id} className={`db-lb-row ${isMe ? "db-lb-row-me" : ""}`}
+                            style={{ animationDelay: `${i * 0.08}s` }}>
+                            <div className="db-lb-row-rank">
+                              {i < 3
+                                ? <span className="db-lb-medal">{medals[i]}</span>
+                                : <span className="db-lb-rank-num-sm">#{i + 1}</span>}
+                            </div>
+                            <div className="db-lb-row-avatar">
+                              {citizen.image
+                                ? <img src={`http://localhost:5001/uploads/${citizen.image}`} alt="" />
+                                : <span>{citizen.name?.[0]?.toUpperCase() || "?"}</span>}
+                            </div>
+                            <div className="db-lb-row-info">
+                              <div className="db-lb-row-name">
+                                {citizen.name} {isMe && <span className="db-lb-you-tag">You</span>}
+                              </div>
+                              <div className="db-lb-row-meta">
+                                <span style={{ color: citizen.level?.color || "#10b981" }}>
+                                  {citizen.level?.icon} {citizen.level?.name}
+                                </span>
+                                <span className="db-lb-row-ward">Ward {citizen.ward}</span>
+                              </div>
+                            </div>
+                            <div className="db-lb-row-pts">
+                              <span className="db-lb-pts-val">{citizen.points?.toLocaleString()}</span>
+                              <span className="db-lb-pts-lbl">pts</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="db-lb-bottom-cta">
+                    <div className="db-lb-cta-text">
+                      <span>🌱</span>
+                      <span>Earn more points by completing requests, paying bills & submitting feedback</span>
+                    </div>
+                    <button className="db-lb-earn-btn" onClick={() => navigate("/new-request")}>
+                      Earn Points
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </>
           )}
         </main>
@@ -377,6 +544,9 @@ const CitizenDashboard = () => {
                 { label: "New Request", action: () => navigate("/new-request")   },
                 { label: "Complaints",  action: () => navigate("/complaints")    },
                 { label: "Payments",    action: () => navigate("/payment")       },
+                { label: "Feedback",    action: () => navigate("/feedback")      },
+                { label: "Leaderboard", action: () => navigate("/leaderboard")   },
+                { label: "Profile",     action: () => navigate("/profile")       },
               ].map(l => (
                 <li key={l.label}>
                   <button className="db-footer-link-btn" onClick={l.action}>{l.label}</button>

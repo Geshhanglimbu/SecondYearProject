@@ -40,15 +40,19 @@ router.post("/", (req, res) => {
 });
 
 router.put("/:id", (req, res) => {
-  const { status } = req.body;
+  const { status, staff_name } = req.body;
   if (!["pending", "in_progress", "completed"].includes(status))
     return res.status(400).json({ message: "Invalid status" });
 
-  db.query("UPDATE schedules SET status = ? WHERE id = ?", [status, req.params.id], (err, result) => {
-    if (err) return res.status(500).json({ message: "Failed to update schedule" });
-    if (result.affectedRows === 0) return res.status(404).json({ message: "Schedule not found" });
-    res.json({ message: "Schedule updated successfully" });
-  });
+  db.query(
+    "UPDATE schedules SET status = ? WHERE id = ?",
+    [status, req.params.id],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: "Failed to update schedule" });
+      if (result.affectedRows === 0) return res.status(404).json({ message: "Schedule not found" });
+      res.json({ message: "Schedule updated successfully" });
+    }
+  );
 });
 
 export default router;

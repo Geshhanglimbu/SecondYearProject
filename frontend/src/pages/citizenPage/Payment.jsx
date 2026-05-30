@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import "./Payment.css";
 
+
 const Payment = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -30,7 +31,7 @@ const Payment = () => {
   const BILL_TOTAL = parseFloat(currentPayment?.amount || BASE_FEE + TAX_AMOUNT);
   const FINES_TOTAL = parseFloat(fineSummary.total_unpaid || 0);
   const GRAND_TOTAL = includeFines ? BILL_TOTAL + FINES_TOTAL : BILL_TOTAL;
-  const isAlreadyPaid = payments.some(p => p.status === "paid");
+  const isAlreadyPaid = payments.length > 0 && !currentPayment;
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -254,6 +255,8 @@ const Payment = () => {
             <div className="pay-menu-item" onClick={() => navigate("/new-request")}><span>📋</span> New Requests<span className="pay-badge-new">NEW</span></div>
             <div className="pay-menu-item" onClick={() => navigate("/complaints")}><span>💬</span> Complaints</div>
             <div className="pay-menu-item" onClick={() => navigate("/Feedback")}><span>✦</span> Feedback</div>
+            <div className="pay-menu-item" onClick={() => navigate("/leaderboard")}><span>🏆</span> Leaderboard</div>
+            <div className="pay-menu-item" onClick={() => navigate("/profile")}><span>👤</span> Profile</div>
           </div>
           <div className="pay-sidebar-section">
             <div className="pay-sidebar-label">USER PORTAL</div>
@@ -409,10 +412,11 @@ const Payment = () => {
                         </div>
                       ))}
                     </div>
+                    {/* https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=EcoConnect-Payment-${getAccountId()}-Rs${GRAND_TOTAL}  qr of this website*/} 
                     {selectedGateway === "qr" && (
                       <div className="pay-qr-section">
                         <div className="pay-qr-left">
-                          <div className="pay-qr-box"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=EcoConnect-Payment-${getAccountId()}-Rs${GRAND_TOTAL}`} alt="QR Code" /></div>
+                          <div className="pay-qr-box"><img src={'../../../../image/QR image.jpeg'} alt="QR Code" /></div>
                           <div className="pay-qr-ready">🟢 READY TO SCAN</div>
                         </div>
                         <div className="pay-qr-steps">
@@ -568,7 +572,7 @@ const Payment = () => {
               <div className="pay-fine-rules">
                 <h4>📋 Fine Policy</h4>
                 <div className="pay-fine-rules-grid">
-                  {[{ icon: "🗑️", rule: "Improper waste segregation", amount: "Rs. 500" }, { icon: "🚫", rule: "Illegal dumping", amount: "Rs. 1,000" }, { icon: "📅", rule: "Missing 3+ pickups", amount: "Rs. 250" }, { icon: "⏰", rule: "Late payment penalty", amount: "Rs. 100/week" }].map((r, i) => (
+                  {[{ icon: "🗑️", rule: "Improper waste segregation", amount: "Rs. 200" }, { icon: "🚫", rule: "Illegal dumping", amount: "Rs. 100" }, { icon: "📅", rule: "Missing 3+ pickups", amount: "Rs. 50" }, { icon: "⏰", rule: "Late payment penalty", amount: "Rs. 100/week" }].map((r, i) => (
                     <div key={i} className="pay-fine-rule-item"><span>{r.icon}</span><div><div className="pay-fine-rule-name">{r.rule}</div><div className="pay-fine-rule-amt">{r.amount}</div></div></div>
                   ))}
                 </div>
